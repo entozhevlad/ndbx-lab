@@ -1,10 +1,10 @@
 services:
-  app:
+  service:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      APP_PORT: ${APP_PORT}
-      APP_HOST: ${APP_HOST}
+    env_file:
+      - .env.local
     ports:
       - "${APP_PORT}:${APP_PORT}"
+    restart: unless-stopped
