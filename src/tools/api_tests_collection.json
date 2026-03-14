@@ -1,0 +1,165 @@
+{
+  "info": {
+    "_postman_id": "7a4c20ef-5d2e-4789-bd3d-2ff20d77d8ad",
+    "name": "ndbx-lab",
+    "description": "Postman collection for Lab 2: anonymous Redis-backed sessions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Read-only health check. Does not create or refresh a session.",
+      "item": [
+        {
+          "name": "GET /health (no cookie)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Checks service health without sending a session cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /health (with saved cookie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Run after POST /session. Postman cookie jar will send X-Session-Id automatically for the same host."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "description": "Create or refresh anonymous sessions stored in Redis.",
+      "item": [
+        {
+          "name": "POST /session (create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 or 200\", function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is set\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "session"
+              ]
+            },
+            "description": "Creates a new anonymous session when no valid X-Session-Id cookie is present."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /session (refresh with saved cookie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is set\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "session"
+              ]
+            },
+            "description": "Run after POST /session (create). Postman will send the saved cookie automatically and the service should refresh the existing session."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
