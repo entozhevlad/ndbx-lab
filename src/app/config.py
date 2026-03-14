@@ -20,7 +20,9 @@ def load_settings() -> Settings:
         app_host=os.environ["APP_HOST"],
         app_port=int(os.environ["APP_PORT"]),
         app_user_session_ttl=int(os.environ["APP_USER_SESSION_TTL"]),
-        app_user_session_create_max_attempts=int(os.environ["APP_USER_SESSION_CREATE_MAX_ATTEMPTS"]),
+        app_user_session_create_max_attempts=int(
+            os.environ["APP_USER_SESSION_CREATE_MAX_ATTEMPTS"]
+        ),
         app_user_session_store_retry_attempts=int(
             os.environ["APP_USER_SESSION_STORE_RETRY_ATTEMPTS"]
         ),

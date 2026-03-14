@@ -1,16 +1,10 @@
-from typing import Protocol
-
+from app.session.store import SessionStore
 from app.session.types import SessionUpsertResult
 from app.user_session import generate_sid
 
 
-class SessionStoreProtocol(Protocol):
-    async def create_session(self, sid: str) -> bool: ...
-    async def refresh_session(self, sid: str) -> bool: ...
-
-
 class SessionService:
-    def __init__(self, session_store: SessionStoreProtocol, max_attempts: int) -> None:
+    def __init__(self, session_store: SessionStore, max_attempts: int) -> None:
         self._session_store = session_store
         self._max_attempts = max_attempts
 
