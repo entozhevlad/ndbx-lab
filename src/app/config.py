@@ -28,8 +28,8 @@ def load_settings() -> Settings:
         ),
         redis_host=os.environ["REDIS_HOST"],
         redis_port=int(os.environ["REDIS_PORT"]),
-        redis_password=os.getenv("REDIS_PASSWORD"),
-        redis_db=int(os.getenv("REDIS_DB")),
+        redis_password=os.environ["REDIS_PASSWORD"],
+        redis_db=int(os.environ["REDIS_DB"]),
     )
 
     if settings.app_user_session_ttl <= 0:
