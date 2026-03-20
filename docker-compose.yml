@@ -7,4 +7,24 @@ services:
       - .env.local
     ports:
       - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - redis
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    env_file:
+      - .env.local
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    command:
+      - sh
+      - -c
+      - |
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          exec redis-server --port "$${REDIS_PORT}" --requirepass "$${REDIS_PASSWORD}"
+        else
+          exec redis-server --port "$${REDIS_PORT}"
+        fi
+    restart: unless-stopped
+
