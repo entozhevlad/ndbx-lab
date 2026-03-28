@@ -2,7 +2,7 @@ import re
 import secrets
 from typing import Final
 
-from fastapi import Response
+from fastapi import Request, Response
 
 COOKIE_NAME: Final[str] = "X-Session-Id"
 REDIS_SESSION_KEY_PREFIX: Final[str] = "sid:"
@@ -26,6 +26,14 @@ def redis_key_for_sid(sid: str) -> str:
     return f"{REDIS_SESSION_KEY_PREFIX}{sid}"
 
 
+def get_request_sid(request: Request) -> str | None:
+    sid = request.cookies.get(COOKIE_NAME)
+    if sid is None or not is_valid_sid(sid):
+        return None
+
+    return sid
+
+
 def set_session_cookie(response: Response, sid: str, ttl_seconds: int) -> None:
     response.set_cookie(
         key=COOKIE_NAME,
@@ -33,4 +41,12 @@ def set_session_cookie(response: Response, sid: str, ttl_seconds: int) -> None:
         httponly=True,
         path="/",
         max_age=ttl_seconds,
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        httponly=True,
     )

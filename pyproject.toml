@@ -5,9 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "bcrypt>=5.0.0",
     "fastapi>=0.129.0",
+    "motor>=3.7.1",
     "mypy>=1.19.1",
     "pydantic>=2.12.5",
+    "pymongo>=4.15.0",
     "python-dotenv>=1.2.1",
     "redis>=7.3.0",
     "uvicorn>=0.41.0",
@@ -23,4 +26,3 @@ explicit_package_bases = true
 dev = [
     "ruff>=0.15.1",
 ]
-

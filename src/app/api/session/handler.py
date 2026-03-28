@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Response, status
 
-from app.user_session import COOKIE_NAME, is_valid_sid, set_session_cookie
+from app.user_session import get_request_sid, set_session_cookie
 
 session_router = APIRouter()
 
@@ -10,9 +10,7 @@ async def create_or_update_session(request: Request) -> Response:
     settings = request.app.state.settings
     session_module = request.app.state.session_module
 
-    raw_sid = request.cookies.get(COOKIE_NAME)
-    sid = raw_sid if raw_sid and is_valid_sid(raw_sid) else None
-
+    sid = get_request_sid(request)
     result = await session_module.service.create_or_refresh_session(sid)
 
     response = Response(
