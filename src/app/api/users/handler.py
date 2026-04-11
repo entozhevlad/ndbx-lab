@@ -7,12 +7,15 @@ from app.api.common import (
     invalid_field_response,
     message_response,
     parse_json_body,
+    parse_non_blank_parameter,
     parse_object_id_parameter,
     parse_uint_parameter,
+    parse_yyyymmdd_parameter,
     refresh_request_session,
     set_response_session_cookie,
 )
 from app.api.schemas import EventListResponse, UserListResponse, UserResponse
+from app.events.service import EVENT_CATEGORIES
 from app.user_session import get_request_sid
 from app.users.service import UserAlreadyExistsError
 
@@ -124,18 +127,73 @@ async def list_user_events(request: Request, user_id: str) -> Response:
             set_response_session_cookie(request, response, sid)
         return response
 
+    params = request.query_params
+    title = params.get("title", "")
+
+    try:
+        category = (
+            _parse_event_category(params["category"])
+            if "category" in params
+            else None
+        )
+        price_from = (
+            parse_uint_parameter(params["price_from"], "price_from")
+            if "price_from" in params
+            else None
+        )
+        price_to = (
+            parse_uint_parameter(params["price_to"], "price_to")
+            if "price_to" in params
+            else None
+        )
+        city = (
+            parse_non_blank_parameter(params["city"], "city")
+            if "city" in params
+            else None
+        )
+        date_from = (
+            parse_yyyymmdd_parameter(params["date_from"], "date_from")
+            if "date_from" in params
+            else None
+        )
+        date_to = (
+            parse_yyyymmdd_parameter(params["date_to"], "date_to")
+            if "date_to" in params
+            else None
+        )
+        limit = (
+            parse_uint_parameter(params["limit"], "limit")
+            if "limit" in params
+            else None
+        )
+        offset = (
+            parse_uint_parameter(params["offset"], "offset")
+            if "offset" in params
+            else 0
+        )
+        if price_from is not None and price_to is not None and price_to < price_from:
+            raise InvalidFieldError("price_to")
+        if date_from is not None and date_to is not None and date_to < date_from:
+            raise InvalidFieldError("date_to")
+    except InvalidFieldError as exc:
+        response = invalid_field_response(exc.field_name)
+        sid = get_request_sid(request)
+        if sid is not None:
+            set_response_session_cookie(request, response, sid)
+        return response
+
     events = await request.app.state.event_service.list_events(
-        title="",
+        title=title,
         event_id=None,
-        category=None,
-        price_from=None,
-        price_to=None,
-        city=None,
-        date_from=None,
-        date_to=None,
+        category=category,
+        price_from=price_from,
+        price_to=price_to,
+        city=city,
+        date_from=date_from,
+        date_to=date_to,
         created_by=user_id,
-        limit=None,
-        offset=0,
+        limit=limit,
+        offset=offset,
     )
 
     response = JSONResponse(
@@ -151,6 +209,14 @@ async def list_user_events(request: Request, user_id: str) -> Response:
         set_response_session_cookie(request, response, sid)
 
     return response
+
+
+def _parse_event_category(value: str) -> str:
+    parsed = parse_non_blank_parameter(value, "category")
+    if parsed not in EVENT_CATEGORIES:
+        raise InvalidFieldError("category")
+
+    return parsed
 
 
 @users_router.get("/users/{user_id}", response_model=UserResponse)

@@ -88,12 +88,15 @@ class EventService:
             query["location.city"] = city
 
         if date_from is not None or date_to is not None:
-            date_query: dict[str, str] = {}
+            day_expr: dict[str, object] = {
+                "$substrBytes": ["$started_at", 0, 10]
+            }
+            conditions: list[dict[str, object]] = []
             if date_from is not None:
-                date_query["$gte"] = date_from
+                conditions.append({"$gte": [day_expr, _iso_day(date_from)]})
             if date_to is not None:
-                date_query["$lte"] = date_to
-            query["started_day"] = date_query
+                conditions.append({"$lte": [day_expr, _iso_day(date_to)]})
+            query["$expr"] = {"$and": conditions}
 
         if created_by is not None:
             query["created_by"] = created_by
@@ -195,6 +198,10 @@ def _get_string(value: object) -> str:
 
 def _extract_day_key(value: str) -> str:
     return value[:10].replace("-", "")
+
+
+def _iso_day(value: str) -> str:
+    return f"{value[:4]}-{value[4:6]}-{value[6:8]}"
 
 
 def _parse_object_id(value: str) -> ObjectId | None:
