@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from urllib.parse import quote_plus
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo import ASCENDING
-
 from app.config import Settings
 
 
@@ -21,14 +19,11 @@ async def init_mongodb_module(settings: Settings) -> MongoModule:
 
     await client.admin.command("ping")
     await database["users"].create_index("username", unique=True)
-    await database["events"].create_index("title", unique=True)
-    await database["events"].create_index(
-        [
-            ("title", ASCENDING),
-            ("created_by", ASCENDING),
-        ]
-    )
-    await database["events"].create_index("created_by")
+    await database["events"].create_index("title")
+    await database["events"].create_index("category")
+    await database["events"].create_index("price")
+    await database["events"].create_index("location.city")
+    await database["events"].create_index("started_day")
 
     return MongoModule(
         client=client,

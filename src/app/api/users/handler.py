@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Response, status
+from fastapi.responses import JSONResponse
 
 from app.api.common import (
     InvalidFieldError,
@@ -6,9 +7,13 @@ from app.api.common import (
     invalid_field_response,
     message_response,
     parse_json_body,
+    parse_object_id_parameter,
+    parse_uint_parameter,
     refresh_request_session,
     set_response_session_cookie,
 )
+from app.api.schemas import EventListResponse, UserListResponse, UserResponse
+from app.user_session import get_request_sid
 from app.users.service import UserAlreadyExistsError
 
 users_router = APIRouter()
@@ -54,3 +59,120 @@ async def create_user(request: Request) -> Response:
     created_response = Response(status_code=status.HTTP_201_CREATED)
     set_response_session_cookie(request, created_response, session_result.sid)
     return created_response
+
+
+@users_router.get("/users", response_model=UserListResponse)
+async def list_users(request: Request) -> Response:
+    params = request.query_params
+    name = params.get("name", "")
+
+    try:
+        user_id = (
+            parse_object_id_parameter(params["id"], "id")
+            if "id" in params
+            else None
+        )
+        limit = (
+            parse_uint_parameter(params["limit"], "limit")
+            if "limit" in params
+            else None
+        )
+        offset = (
+            parse_uint_parameter(params["offset"], "offset")
+            if "offset" in params
+            else 0
+        )
+    except InvalidFieldError as exc:
+        response = invalid_field_response(exc.field_name)
+        sid = get_request_sid(request)
+        if sid is not None:
+            set_response_session_cookie(request, response, sid)
+        return response
+
+    users = await request.app.state.user_service.list_users(
+        name=name,
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+    )
+
+    response = JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "users": users,
+            "count": len(users),
+        },
+    )
+
+    sid = get_request_sid(request)
+    if sid is not None:
+        set_response_session_cookie(request, response, sid)
+
+    return response
+
+
+@users_router.get("/users/{user_id}/events", response_model=EventListResponse)
+async def list_user_events(request: Request, user_id: str) -> Response:
+    user = await request.app.state.user_service.get_public_user(user_id)
+    if user is None:
+        response = message_response(
+            status.HTTP_404_NOT_FOUND,
+            "User not found",
+        )
+        sid = get_request_sid(request)
+        if sid is not None:
+            set_response_session_cookie(request, response, sid)
+        return response
+
+    events = await request.app.state.event_service.list_events(
+        title="",
+        event_id=None,
+        category=None,
+        price_from=None,
+        price_to=None,
+        city=None,
+        date_from=None,
+        date_to=None,
+        created_by=user_id,
+        limit=None,
+        offset=0,
+    )
+
+    response = JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "events": events,
+            "count": len(events),
+        },
+    )
+
+    sid = get_request_sid(request)
+    if sid is not None:
+        set_response_session_cookie(request, response, sid)
+
+    return response
+
+
+@users_router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(request: Request, user_id: str) -> Response:
+    user = await request.app.state.user_service.get_public_user(user_id)
+    if user is None:
+        response = message_response(
+            status.HTTP_404_NOT_FOUND,
+            "Not found",
+        )
+        sid = get_request_sid(request)
+        if sid is not None:
+            set_response_session_cookie(request, response, sid)
+        return response
+
+    response = JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=user,
+    )
+
+    sid = get_request_sid(request)
+    if sid is not None:
+        set_response_session_cookie(request, response, sid)
+
+    return response

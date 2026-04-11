@@ -8,14 +8,17 @@ services:
     ports:
       - "${APP_PORT}:${APP_PORT}"
     depends_on:
-      - redis
-      - mongodb
+      redis:
+        condition: service_started
+      mongodb-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     env_file:
       - .env.local
+    hostname: ${REDIS_HOST}
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
     command:
@@ -23,23 +26,225 @@ services:
       - -c
       - |
         if [ -n "$${REDIS_PASSWORD}" ]; then
-          exec redis-server --port "$${REDIS_PORT}" --requirepass "$${REDIS_PASSWORD}"
+          exec redis-server --bind 0.0.0.0 --port "$${REDIS_PORT}" --requirepass "$${REDIS_PASSWORD}"
         else
-          exec redis-server --port "$${REDIS_PORT}"
+          exec redis-server --bind 0.0.0.0 --port "$${REDIS_PORT}"
         fi
     restart: unless-stopped
 
-  mongodb:
+  config1:
     image: mongo:8.2
     env_file:
       - .env.local
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+    hostname: config1
     ports:
-      - "${MONGODB_PORT}:${MONGODB_PORT}"
+      - "${CONFIG1_PORT}:${CONFIG1_PORT}"
+    volumes:
+      - config1-data:/data/db
     command:
       - sh
       - -c
-      - exec mongod --bind_ip_all --port "$${MONGODB_PORT}"
+      - |
+        exec mongod --bind_ip_all --configsvr --replSet "$${CONFIGRS_NAME}" --port "$${CONFIG1_PORT}" --dbpath /data/db
     restart: unless-stopped
+
+  config2:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: config2
+    ports:
+      - "${CONFIG2_PORT}:${CONFIG2_PORT}"
+    volumes:
+      - config2-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --configsvr --replSet "$${CONFIGRS_NAME}" --port "$${CONFIG2_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  config3:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: config3
+    ports:
+      - "${CONFIG3_PORT}:${CONFIG3_PORT}"
+    volumes:
+      - config3-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --configsvr --replSet "$${CONFIGRS_NAME}" --port "$${CONFIG3_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard1a:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard1a
+    ports:
+      - "${SHARD1_A_PORT}:${SHARD1_A_PORT}"
+    volumes:
+      - shard1a-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD1_RS_NAME}" --port "$${SHARD1_A_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard1b:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard1b
+    ports:
+      - "${SHARD1_B_PORT}:${SHARD1_B_PORT}"
+    volumes:
+      - shard1b-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD1_RS_NAME}" --port "$${SHARD1_B_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard1c:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard1c
+    ports:
+      - "${SHARD1_C_PORT}:${SHARD1_C_PORT}"
+    volumes:
+      - shard1c-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD1_RS_NAME}" --port "$${SHARD1_C_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard2a:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard2a
+    ports:
+      - "${SHARD2_A_PORT}:${SHARD2_A_PORT}"
+    volumes:
+      - shard2a-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD2_RS_NAME}" --port "$${SHARD2_A_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard2b:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard2b
+    ports:
+      - "${SHARD2_B_PORT}:${SHARD2_B_PORT}"
+    volumes:
+      - shard2b-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD2_RS_NAME}" --port "$${SHARD2_B_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  shard2c:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: shard2c
+    ports:
+      - "${SHARD2_C_PORT}:${SHARD2_C_PORT}"
+    volumes:
+      - shard2c-data:/data/db
+    command:
+      - sh
+      - -c
+      - |
+        exec mongod --bind_ip_all --shardsvr --replSet "$${SHARD2_RS_NAME}" --port "$${SHARD2_C_PORT}" --dbpath /data/db
+    restart: unless-stopped
+
+  mongos:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    hostname: ${MONGODB_HOST}
+    ports:
+      - "${MONGODB_PORT}:${MONGODB_PORT}"
+    depends_on:
+      config1:
+        condition: service_started
+      config2:
+        condition: service_started
+      config3:
+        condition: service_started
+    command:
+      - sh
+      - -c
+      - |
+        exec mongos --bind_ip_all --port "$${MONGODB_PORT}" --configdb "$${CONFIGRS_NAME}/config1:$${CONFIG1_PORT},config2:$${CONFIG2_PORT},config3:$${CONFIG3_PORT}"
+    restart: unless-stopped
+
+  mongodb-init:
+    image: mongo:8.2
+    env_file:
+      - .env.local
+    depends_on:
+      config1:
+        condition: service_started
+      config2:
+        condition: service_started
+      config3:
+        condition: service_started
+      shard1a:
+        condition: service_started
+      shard1b:
+        condition: service_started
+      shard1c:
+        condition: service_started
+      shard2a:
+        condition: service_started
+      shard2b:
+        condition: service_started
+      shard2c:
+        condition: service_started
+      mongos:
+        condition: service_started
+    volumes:
+      - ./scripts/mongodb:/scripts/mongodb:ro
+    command:
+      - sh
+      - /scripts/mongodb/init-cluster.sh
+    restart: "no"
+
+volumes:
+  config1-data:
+    name: ${CONFIG1_VOLUME}
+  config2-data:
+    name: ${CONFIG2_VOLUME}
+  config3-data:
+    name: ${CONFIG3_VOLUME}
+  shard1a-data:
+    name: ${SHARD1_A_VOLUME}
+  shard1b-data:
+    name: ${SHARD1_B_VOLUME}
+  shard1c-data:
+    name: ${SHARD1_C_VOLUME}
+  shard2a-data:
+    name: ${SHARD2_A_VOLUME}
+  shard2b-data:
+    name: ${SHARD2_B_VOLUME}
+  shard2c-data:
+    name: ${SHARD2_C_VOLUME}

@@ -73,6 +73,7 @@ class ListEventsQuery(ApiModel):
 
 class EventLocationResponse(ApiModel):
     address: str
+    city: str | None = None
 
 
 class EventResponse(ApiModel):
@@ -84,6 +85,8 @@ class EventResponse(ApiModel):
     created_by: str
     started_at: str
     finished_at: str
+    category: str | None = None
+    price: int | None = None
 
 
 class EventCreatedResponse(ApiModel):
@@ -92,4 +95,15 @@ class EventCreatedResponse(ApiModel):
 
 class EventListResponse(ApiModel):
     events: list[EventResponse]
+    count: int
+
+
+class UserResponse(ApiModel):
+    id: str
+    full_name: str
+    username: str
+
+
+class UserListResponse(ApiModel):
+    users: list[UserResponse]
     count: int
