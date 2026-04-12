@@ -2,14 +2,15 @@
 
 `ndbx-lab` — это FastAPI-приложение для выполнения лабораторных работ по курсу NoSQL.
 
-Проект запускается в Docker, использует Redis как внешнее хранилище и развивается по мере выполнения лабораторных работ. В текущем состоянии в проекте уже реализованы базовый health-check и работа с анонимными пользовательскими сессиями.
+Проект запускается в Docker, использует Redis для сессий и MongoDB для данных пользователей и событий. В лабораторной работе №3 поверх анонимных Redis-сессий добавлены регистрация, логин и CRUD-часть для событий.
 
 ## Что есть в проекте
 
 - FastAPI-приложение со `src`-структурой
 - запуск через Docker Compose
 - конфигурация через `.env.local`
-- Redis как инфраструктурная зависимость
+- Redis для пользовательских сессий
+- MongoDB для коллекций `users` и `events`
 - Swagger UI для ручной проверки API
 - Postman-коллекция для тестирования запросов
 
@@ -18,6 +19,7 @@
 - Python
 - FastAPI
 - Redis
+- MongoDB
 - Docker Compose
 
 ## Запуск
@@ -65,8 +67,13 @@ make stop
 - `REDIS_PORT` — порт Redis
 - `REDIS_PASSWORD` — пароль Redis
 - `REDIS_DB` — номер Redis database
+- `MONGODB_HOST` — хост MongoDB
+- `MONGODB_PORT` — порт MongoDB
+- `MONGODB_USER` — пользователь MongoDB
+- `MONGODB_PASSWORD` — пароль MongoDB
+- `MONGODB_DATABASE` — имя базы MongoDB
 
-Если `REDIS_PASSWORD` задан, он используется и приложением, и контейнером Redis.
+Если `REDIS_PASSWORD` задан, он используется и приложением, и контейнером Redis. Пара `MONGODB_USER` / `MONGODB_PASSWORD` опциональна: если оставить их пустыми, MongoDB поднимается без авторизации.
 
 ## Текущая функциональность
 
@@ -84,31 +91,60 @@ make stop
 
 Endpoint для создания и обновления анонимной пользовательской сессии.
 
+### `POST /users`
+
+Регистрация пользователя. Создаёт пользователя в MongoDB, хеширует пароль через `bcrypt`, создаёт новую сессию и привязывает её к `user_id`.
+
+### `POST /auth/login`
+
+Логин по `username` и `password`. Повторно использует активную сессию из cookie или создаёт новую, если старая истекла.
+
+### `POST /auth/logout`
+
+Удаляет Redis-сессию и очищает cookie `X-Session-Id`.
+
+### `POST /events`
+
+Создание события доступно только авторизованному пользователю. События сохраняются в MongoDB.
+
+### `GET /events`
+
+Просмотр событий с фильтрацией по подстроке `title` и пагинацией через `limit` / `offset`.
+
 Сессии:
 
 - хранятся в Redis
 - используют cookie `X-Session-Id`
 - имеют TTL
 - сохраняются по ключу `sid:{session_id}`
+- могут содержать поле `user_id` для авторизованного пользователя
+
+Коллекции MongoDB:
+
+- `users`: `full_name`, `username`, `password_hash`
+- `events`: `title`, `description`, `location.address`, `created_at`, `created_by`, `started_at`, `finished_at`
 
 ## Архитектура
 
 Приложение построено послойно, чтобы HTTP-часть, бизнес-логика и работа с Redis были разделены.
 
-- `src/app/main.py` и `src/app/service.py` отвечают за создание FastAPI-приложения, загрузку конфигурации и инициализацию зависимостей в lifecycle
+- `src/app/main.py` и `src/app/service.py` отвечают за создание FastAPI-приложения, загрузку конфигурации и инициализацию Redis и MongoDB в lifecycle
 - `src/app/routers.py` и `src/app/api/` содержат HTTP-роуты и обработчики запросов
 - `src/app/session/service.py` содержит бизнес-логику сессий: создать новую сессию или обновить существующую
-- `src/app/session/store.py` изолирует работу с Redis: хранение, обновление TTL и запись метаданных сессии
+- `src/app/session/store.py` изолирует работу с Redis: хранение, обновление TTL и запись метаданных сессии, включая `user_id`
 - `src/app/session/bootstrap.py` собирает session-модуль и связывает service со store
+- `src/app/users/` и `src/app/events/` разделяют бизнес-логику и доступ к MongoDB для пользователей и событий
+- `src/app/auth/service.py` связывает логин/логаут с пользователями и Redis-сессиями
+- `src/app/mongodb/bootstrap.py` инициализирует MongoDB и создаёт индексы
 - `src/app/user_session.py` содержит утилиты для cookie, sid и Redis key format
 
 Поток запроса выглядит так:
 
 1. HTTP-запрос приходит в handler.
 2. Handler достает данные из cookie и обращается к session service.
-3. Session service решает, нужно обновить существующую сессию или создать новую.
-4. Session store выполняет операции в Redis.
-5. Handler формирует HTTP-ответ и устанавливает cookie.
+3. Для `users`, `auth` и `events` handler дополнительно вызывает соответствующий service.
+4. Session store выполняет операции в Redis, а MongoDB store — операции с документами.
+5. Handler формирует HTTP-ответ и устанавливает cookie при необходимости.
 
 ## Проверка API
 
@@ -124,10 +160,37 @@ Swagger UI доступен по адресу [http://localhost:8080/docs](http:
 curl -i -c /tmp/ndbx.cookies -X POST http://localhost:8080/session
 ```
 
-Пример повторного запроса с той же cookie:
+Регистрация пользователя:
 
 ```bash
-curl -i -b /tmp/ndbx.cookies -X POST http://localhost:8080/session
+curl -i -c /tmp/ndbx.cookies \
+  -H 'Content-Type: application/json' \
+  -d '{"full_name":"Джон Доу","username":"j0hnd0e42","password":"<your_password>"}' \
+  -X POST http://localhost:8080/users
+```
+
+Логин:
+
+```bash
+curl -i -b /tmp/ndbx.cookies -c /tmp/ndbx.cookies \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"j0hnd0e42","password":"<your_password>"}' \
+  -X POST http://localhost:8080/auth/login
+```
+
+Создание события:
+
+```bash
+curl -i -b /tmp/ndbx.cookies \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Мой день рождения","address":"г. Санкт-Петербург","started_at":"2026-04-01T12:00:00+03:00","finished_at":"2026-04-01T23:00:00+03:00","description":"Приглашаю вас"}' \
+  -X POST http://localhost:8080/events
+```
+
+Просмотр событий:
+
+```bash
+curl -i "http://localhost:8080/events?title=день&limit=10&offset=0"
 ```
 
 Проверка health-check:
@@ -145,16 +208,24 @@ curl -i http://localhost:8080/health
 Ее можно использовать для проверки:
 
 - `POST /session`
-- повторного `POST /session` с cookie
 - `GET /health`
+- `POST /users`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `POST /events`
+- `GET /events`
 
 ## Структура проекта
 
 - `src/app/` — приложение и основная бизнес-логика
 - `src/app/api/` — HTTP handlers
 - `src/app/session/` — логика сессий и работа с Redis
+- `src/app/users/` — пользователи и доступ к коллекции `users`
+- `src/app/events/` — события и доступ к коллекции `events`
+- `src/app/auth/` — логика логина и логаута
+- `src/app/mongodb/` — инициализация MongoDB и индексов
 - `src/tools/` — вспомогательные артефакты, включая Postman-коллекцию
-- `docker-compose.yml` — запуск приложения и Redis
+- `docker-compose.yml` — запуск приложения, Redis и MongoDB
 - `.env.local` — конфигурация окружения
 - `Makefile` — команды для запуска и остановки проекта
 

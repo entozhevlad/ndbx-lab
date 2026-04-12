@@ -2,22 +2,75 @@
   "info": {
     "_postman_id": "7a4c20ef-5d2e-4789-bd3d-2ff20d77d8ad",
     "name": "ndbx-lab",
-    "description": "Postman collection for Lab 2: anonymous Redis-backed sessions.",
+    "description": "Postman collection for Labs 2 and 3: Redis-backed sessions, MongoDB users, authentication, and events.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080"
+    },
+    {
+      "key": "fullName",
+      "value": "Джон Доу"
+    },
+    {
+      "key": "username",
+      "value": "j0hnd0e42"
+    },
+    {
+      "key": "password",
+      "value": "<set-in-postman>"
+    },
+    {
+      "key": "wrongPassword",
+      "value": "<set-wrong-password>"
+    },
+    {
+      "key": "eventTitle",
+      "value": "Мой день рождения"
+    },
+    {
+      "key": "eventAddress",
+      "value": "г. Санкт-Петербург, ул. Пушкина, дом Колотушкина"
+    },
+    {
+      "key": "eventStartedAt",
+      "value": "2026-04-01T12:00:00+03:00"
+    },
+    {
+      "key": "eventFinishedAt",
+      "value": "2026-04-01T23:00:00+03:00"
+    },
+    {
+      "key": "eventDescription",
+      "value": "Приглашаю вас отпраздновать мое 30-с-чем-то-летие"
+    },
+    {
+      "key": "eventId",
+      "value": ""
     }
   ],
   "item": [
     {
       "name": "Health",
-      "description": "Read-only health check. Does not create or refresh a session.",
+      "description": "Read-only health check. Does not create a session, but returns the existing cookie if one is already present.",
       "item": [
         {
           "name": "GET /health (no cookie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -61,7 +114,7 @@
                 "health"
               ]
             },
-            "description": "Run after POST /session. Postman cookie jar will send X-Session-Id automatically for the same host."
+            "description": "Run after any POST endpoint that set X-Session-Id. Postman sends the cookie automatically for the same host."
           },
           "response": []
         }
@@ -69,7 +122,7 @@
     },
     {
       "name": "Session",
-      "description": "Create or refresh anonymous sessions stored in Redis.",
+      "description": "Anonymous Redis-backed session management from Lab 2.",
       "item": [
         {
           "name": "POST /session (create)",
@@ -155,7 +208,697 @@
                 "session"
               ]
             },
-            "description": "Run after POST /session (create). Postman will send the saved cookie automatically and the service should refresh the existing session."
+            "description": "Run after POST /session (create). The existing session should be refreshed."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User registration flow. Recommended order: create, duplicate, invalid field.",
+      "item": [
+        {
+          "name": "POST /users (create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is set\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"{{fullName}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Creates a new user, hashes password with bcrypt, creates a new session, and binds it to the user."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /users (duplicate user)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"user already exists\");",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is returned\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"{{fullName}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Run after POST /users (create). Should return conflict and refresh the existing session if present."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /users (invalid full_name)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"full_name\" field');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Returns a validation error for an empty required field."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication flow. Recommended order: login success, invalid credentials, logout.",
+      "item": [
+        {
+          "name": "POST /auth/login (success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is set\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates a user and binds the current session to user_id, or creates a new session if needed."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/login (invalid credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"invalid credentials\");",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is returned\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{wrongPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Checks invalid credentials path and confirms the active session is still returned."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Cookie removal header is present\", function () {",
+                  "  pm.expect(pm.response.headers.get(\"Set-Cookie\")).to.include(\"Max-Age=0\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Deletes the current Redis session and expires X-Session-Id cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/logout (unauthenticated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Run after cookie cleanup or in a clean cookie jar. Logout requires an authenticated session."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "description": "Event creation and listing. Recommended order: unauthorized, login, create, duplicate, list, invalid parameter.",
+      "item": [
+        {
+          "name": "POST /events (unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}}\",\n  \"address\": \"{{eventAddress}}\",\n  \"started_at\": \"{{eventStartedAt}}\",\n  \"finished_at\": \"{{eventFinishedAt}}\",\n  \"description\": \"{{eventDescription}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Run after logout or in a clean cookie jar. Creating events must require an authorized session."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events (create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains event id\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"eventId\", json.id);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is returned\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}}\",\n  \"address\": \"{{eventAddress}}\",\n  \"started_at\": \"{{eventStartedAt}}\",\n  \"finished_at\": \"{{eventFinishedAt}}\",\n  \"description\": \"{{eventDescription}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Run after successful login. Creates a new event document in MongoDB."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events (duplicate title)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"event already exists\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}}\",\n  \"address\": \"{{eventAddress}}\",\n  \"started_at\": \"{{eventStartedAt}}\",\n  \"finished_at\": \"{{eventFinishedAt}}\",\n  \"description\": \"{{eventDescription}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Run after POST /events (create). Checks unique title constraint."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events (invalid finished_at)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"finished_at\" field');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}} bad dates\",\n  \"address\": \"{{eventAddress}}\",\n  \"started_at\": \"{{eventFinishedAt}}\",\n  \"finished_at\": \"{{eventStartedAt}}\",\n  \"description\": \"{{eventDescription}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Checks validation for finished_at earlier than started_at."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (all)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has events and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.events.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Lists all events. This endpoint is available without authorization."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (filtered and paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has events and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.events.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?title={{eventTitle}}&limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "title",
+                  "value": "{{eventTitle}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Filters events by title substring and uses limit/offset pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (invalid limit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"limit\" parameter');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?limit=-1&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "-1"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Returns a validation error for an invalid query parameter."
           },
           "response": []
         }
