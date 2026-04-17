@@ -26,9 +26,9 @@ services:
       - -c
       - |
         if [ -n "$${REDIS_PASSWORD}" ]; then
-          exec redis-server --bind 0.0.0.0 --port "$${REDIS_PORT}" --requirepass "$${REDIS_PASSWORD}"
+          exec redis-server --bind "$${REDIS_HOST}" --port "$${REDIS_PORT}" --requirepass "$${REDIS_PASSWORD}"
         else
-          exec redis-server --bind 0.0.0.0 --port "$${REDIS_PORT}"
+          exec redis-server --bind "$${REDIS_HOST}" --port "$${REDIS_PORT}"
         fi
     restart: unless-stopped
 
