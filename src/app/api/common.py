@@ -97,6 +97,14 @@ def parse_object_id_parameter(value: str, field_name: str) -> str:
     return value
 
 
+def include_has(request: Request, token: str) -> bool:
+    raw = request.query_params.get("include")
+    if not raw:
+        return False
+
+    return token in {item.strip() for item in raw.split(",") if item.strip()}
+
+
 def parse_yyyymmdd_parameter(value: str, field_name: str) -> str:
     if len(value) != 8 or not value.isdigit():
         raise InvalidFieldError(field_name)

@@ -5,6 +5,17 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и этот проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.3.0] - 2026-04-25
+### Добавлено
+- Добавлены эндпоинты `POST /events/{event_id}/like` и `POST /events/{event_id}/dislike` для реакций на мероприятия
+- Добавлен параметр `?include=reactions` на эндпоинты:
+  - `GET /events`,
+  - `GET /events/{event_id}`
+  - `GET /users/{user_id}/events`
+- Добавлена интеграция с Apache Cassandra
+- Добавлено кэширование счётчиков реакций в Redis
+
+
 ## [1.2.0] - 2026-04-10
 
 ### Добавлено

@@ -68,6 +68,16 @@ class EventStore:
         )
         return result.matched_count > 0
 
+    async def list_event_ids_by_title(self, title: str) -> list[str]:
+        cursor = self._collection.find(
+            {"title": title},
+            projection={"_id": 1},
+        )
+        ids: list[str] = []
+        async for event in cursor:
+            ids.append(str(event["_id"]))
+        return ids
+
     async def has_event_for_organizer(
         self,
         event_id: str,
