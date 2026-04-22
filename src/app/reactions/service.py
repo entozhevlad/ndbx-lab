@@ -38,7 +38,7 @@ class ReactionService:
 
         title = _get_title(event)
         if title is not None:
-            await self._invalidate_cache(title)
+            await self._refresh_cache(title, fallback_event_id=event_id)
         return True
 
     async def count_by_title(self, title: str) -> tuple[int, int]:
@@ -70,17 +70,18 @@ class ReactionService:
             result[title] = await self.count_by_title(title)
         return result
 
-    async def _invalidate_cache(self, title: str) -> None:
+    async def _refresh_cache(
+        self,
+        title: str,
+        fallback_event_id: str,
+    ) -> None:
         event_ids = await self._event_service.list_event_ids_by_title(title)
         if not event_ids:
-            return
+            event_ids = [fallback_event_id]
 
         likes, dislikes = await self._reaction_store.count_reactions_for_events(
             event_ids
         )
-        if likes == 0 and dislikes == 0:
-            return
-
         await self._reaction_cache.set(title, likes, dislikes)
 
 
