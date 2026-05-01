@@ -3,7 +3,7 @@ from typing import Awaitable, cast
 
 from redis.asyncio import Redis
 
-_KEY_TEMPLATE = "event:{title_hash}:reactions"
+_KEY_TEMPLATE = "events:{title_hash}:reactions"
 _LIKES_FIELD = "likes"
 _DISLIKES_FIELD = "dislikes"
 
