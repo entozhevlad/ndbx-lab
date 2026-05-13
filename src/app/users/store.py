@@ -4,7 +4,6 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-
 PUBLIC_USER_PROJECTION = {
     "full_name": 1,
     "username": 1,

@@ -3,6 +3,7 @@ import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from cassandra.cluster import Session
 from cassandra.query import PreparedStatement
@@ -207,7 +208,7 @@ class ReviewStore:
         return count, total / count
 
 
-def _row_to_review(row: object) -> Review:
+def _row_to_review(row: Any) -> Review:
     return Review(
         id=str(row.id),
         event_id=row.event_id,

@@ -1,4 +1,5 @@
 import hashlib
+from typing import Awaitable, cast
 
 from redis.asyncio import Redis
 
@@ -14,7 +15,7 @@ class ReviewCache:
 
     async def get(self, title: str) -> tuple[int, float] | None:
         key = _build_key(title)
-        data = await self._redis.hgetall(key)
+        data = await cast(Awaitable[dict[str, str]], self._redis.hgetall(key))
         if not data:
             return None
 

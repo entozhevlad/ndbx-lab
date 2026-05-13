@@ -5,7 +5,8 @@ from fastapi.responses import PlainTextResponse
 from redis.asyncio import Redis
 
 from app.auth.service import AuthService
-from app.cassandra.bootstrap import close_cassandra_module, init_cassandra_module
+from app.cassandra.bootstrap import (close_cassandra_module,
+                                     init_cassandra_module)
 from app.config import load_settings
 from app.events.service import EventService
 from app.events.store import EventStore

@@ -3,22 +3,13 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (
-    InvalidFieldError,
-    get_existing_session,
-    invalid_field_response,
-    message_response,
-    parse_json_body,
-    parse_uint_parameter,
-    refresh_request_session_cookie,
-    set_response_session_cookie,
-)
-from app.reviews.service import (
-    EventNotFoundError,
-    ReviewAlreadyExistsError,
-    ReviewNotFoundError,
-    ReviewService,
-)
+from app.api.common import (InvalidFieldError, get_existing_session,
+                            invalid_field_response, message_response,
+                            parse_json_body, parse_uint_parameter,
+                            refresh_request_session_cookie,
+                            set_response_session_cookie)
+from app.reviews.service import (EventNotFoundError, ReviewAlreadyExistsError,
+                                 ReviewNotFoundError, ReviewService)
 from app.reviews.store import Review
 from app.user_session import get_request_sid
 

@@ -3,24 +3,18 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (
-    InvalidFieldError,
-    get_existing_session,
-    get_optional_string_field,
-    get_required_rfc3339_field,
-    get_required_string_field,
-    include_has,
-    invalid_field_response,
-    message_response,
-    parse_json_body,
-    parse_non_blank_parameter,
-    parse_object_id_parameter,
-    parse_uint_parameter,
-    parse_yyyymmdd_parameter,
-    refresh_request_session_cookie,
-    set_response_session_cookie,
-)
-from app.api.schemas import EventCreatedResponse, EventListResponse, EventResponse
+from app.api.common import (InvalidFieldError, get_existing_session,
+                            get_optional_string_field,
+                            get_required_rfc3339_field,
+                            get_required_string_field, include_has,
+                            invalid_field_response, message_response,
+                            parse_json_body, parse_non_blank_parameter,
+                            parse_object_id_parameter, parse_uint_parameter,
+                            parse_yyyymmdd_parameter,
+                            refresh_request_session_cookie,
+                            set_response_session_cookie)
+from app.api.schemas import (EventCreatedResponse, EventListResponse,
+                             EventResponse)
 from app.events.service import EVENT_CATEGORIES, EventAlreadyExistsError
 from app.reactions.service import ReactionService
 from app.reviews.service import ReviewService

@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, NonNegativeInt, StrictStr, field_validator
+from pydantic import (BaseModel, ConfigDict, NonNegativeInt, StrictStr,
+                      field_validator)
 
 
 def _validate_not_blank(value: str) -> str:

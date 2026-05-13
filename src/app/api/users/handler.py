@@ -1,26 +1,15 @@
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (
-    InvalidFieldError,
-    get_required_string_field,
-    include_has,
-    invalid_field_response,
-    message_response,
-    parse_json_body,
-    parse_non_blank_parameter,
-    parse_object_id_parameter,
-    parse_uint_parameter,
-    parse_yyyymmdd_parameter,
-    refresh_request_session,
-    set_response_session_cookie,
-)
-from app.api.events.handler import (
-    INCLUDE_REACTIONS,
-    INCLUDE_REVIEWS,
-    attach_reactions,
-    attach_reviews,
-)
+from app.api.common import (InvalidFieldError, get_required_string_field,
+                            include_has, invalid_field_response,
+                            message_response, parse_json_body,
+                            parse_non_blank_parameter,
+                            parse_object_id_parameter, parse_uint_parameter,
+                            parse_yyyymmdd_parameter, refresh_request_session,
+                            set_response_session_cookie)
+from app.api.events.handler import (INCLUDE_REACTIONS, INCLUDE_REVIEWS,
+                                    attach_reactions, attach_reviews)
 from app.api.schemas import EventListResponse, UserListResponse, UserResponse
 from app.events.service import EVENT_CATEGORIES
 from app.user_session import get_request_sid
