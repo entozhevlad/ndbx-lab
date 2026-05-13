@@ -17,7 +17,9 @@ from app.api.common import (
 )
 from app.api.events.handler import (
     INCLUDE_REACTIONS,
+    INCLUDE_REVIEWS,
     attach_reactions,
+    attach_reviews,
 )
 from app.api.schemas import EventListResponse, UserListResponse, UserResponse
 from app.events.service import EVENT_CATEGORIES
@@ -203,6 +205,9 @@ async def list_user_events(request: Request, user_id: str) -> Response:
 
     if include_has(request, INCLUDE_REACTIONS):
         await attach_reactions(request.app.state.reaction_service, events)
+
+    if include_has(request, INCLUDE_REVIEWS):
+        await attach_reviews(request.app.state.review_service, events)
 
     response = JSONResponse(
         status_code=status.HTTP_200_OK,

@@ -81,6 +81,11 @@ class EventReactionsResponse(ApiModel):
     dislikes: int
 
 
+class EventReviewsResponse(ApiModel):
+    count: int
+    rating: float
+
+
 class EventResponse(ApiModel):
     id: str
     title: str
@@ -93,6 +98,7 @@ class EventResponse(ApiModel):
     category: str | None = None
     price: int | None = None
     reactions: EventReactionsResponse | None = None
+    reviews: EventReviewsResponse | None = None
 
 
 class EventCreatedResponse(ApiModel):

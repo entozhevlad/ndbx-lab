@@ -13,6 +13,9 @@ from app.mongodb.bootstrap import init_mongodb_module
 from app.reactions.cache import ReactionCache
 from app.reactions.service import ReactionService
 from app.reactions.store import ReactionStore
+from app.reviews.cache import ReviewCache
+from app.reviews.service import ReviewService
+from app.reviews.store import ReviewStore
 from app.session.bootstrap import init_session_module
 from app.users.service import UserService
 from app.users.store import UserStore
@@ -63,6 +66,17 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
                 reaction_cache=reaction_cache,
             )
 
+            review_store = ReviewStore(cassandra_module.session)
+            review_cache = ReviewCache(
+                redis=redis,
+                ttl_seconds=settings.app_event_reviews_ttl,
+            )
+            review_service = ReviewService(
+                event_service=event_service,
+                review_store=review_store,
+                review_cache=review_cache,
+            )
+
             app.state.settings = settings
             app.state.redis = redis
             app.state.mongodb = mongo_module
@@ -72,6 +86,7 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
             app.state.event_service = event_service
             app.state.auth_service = auth_service
             app.state.reaction_service = reaction_service
+            app.state.review_service = review_service
 
             yield
         finally:

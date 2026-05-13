@@ -23,9 +23,11 @@ from app.api.common import (
 from app.api.schemas import EventCreatedResponse, EventListResponse, EventResponse
 from app.events.service import EVENT_CATEGORIES, EventAlreadyExistsError
 from app.reactions.service import ReactionService
+from app.reviews.service import ReviewService
 from app.user_session import get_request_sid
 
 INCLUDE_REACTIONS = "reactions"
+INCLUDE_REVIEWS = "reviews"
 
 events_router = APIRouter()
 
@@ -197,6 +199,12 @@ async def list_events(request: Request) -> Response:
             events,
         )
 
+    if include_has(request, INCLUDE_REVIEWS):
+        await attach_reviews(
+            request.app.state.review_service,
+            events,
+        )
+
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
@@ -222,6 +230,12 @@ async def get_event(request: Request, event_id: str) -> Response:
     if include_has(request, INCLUDE_REACTIONS):
         await attach_reactions(
             request.app.state.reaction_service,
+            [event],
+        )
+
+    if include_has(request, INCLUDE_REVIEWS):
+        await attach_reviews(
+            request.app.state.review_service,
             [event],
         )
 
@@ -305,6 +319,29 @@ async def attach_reactions(
         if isinstance(title, str) and title in counts:
             likes, dislikes = counts[title]
         event["reactions"] = {"likes": likes, "dislikes": dislikes}
+
+
+async def attach_reviews(
+    review_service: ReviewService,
+    events: list[dict[str, object]],
+) -> None:
+    titles: list[str] = []
+    for event in events:
+        title = event.get("title")
+        if isinstance(title, str) and title != "":
+            titles.append(title)
+
+    aggregates = await review_service.aggregates_for_titles(titles)
+
+    for event in events:
+        title = event.get("title")
+        count, rating = 0, 0.0
+        if isinstance(title, str) and title in aggregates:
+            count, rating = aggregates[title]
+        event["reviews"] = {
+            "count": count,
+            "rating": round(rating, 1),
+        }
 
 
 @events_router.patch("/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
