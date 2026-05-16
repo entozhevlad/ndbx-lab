@@ -12,8 +12,8 @@ services:
         condition: service_started
       mongodb-init:
         condition: service_completed_successfully
-      cassandra-test:
-        condition: service_healthy
+      cassandra-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   redis:
@@ -248,6 +248,20 @@ services:
         - "cqlsh -e 'describe keyspaces' ${CASSANDRA_HOSTS} ${CASSANDRA_PORT} || exit 1"
       start_period: ${CASSANDRA_HEALTHCHECK_START_PERIOD}
     restart: unless-stopped
+
+  cassandra-init:
+    image: cassandra:4.1
+    env_file:
+      - .env.local
+    depends_on:
+      cassandra-test:
+        condition: service_healthy
+    volumes:
+      - ./scripts/cassandra:/scripts/cassandra:ro
+    command:
+      - sh
+      - /scripts/cassandra/init-cluster.sh
+    restart: "no"
 
 volumes:
   config1-data:
