@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "7a4c20ef-5d2e-4789-bd3d-2ff20d77d8ad",
     "name": "ndbx-lab",
-    "description": "Postman collection for Labs 2 and 3: Redis-backed sessions, MongoDB users, authentication, and events.",
+    "description": "Postman collection for Labs 2, 3, and 4: Redis-backed sessions, MongoDB users, authentication, events, event editing, filtered search, and organizer endpoints (lab 4).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -49,6 +49,26 @@
     {
       "key": "eventId",
       "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "eventCategory",
+      "value": "party"
+    },
+    {
+      "key": "eventCity",
+      "value": "Москва"
+    },
+    {
+      "key": "eventPrice",
+      "value": "1000"
+    },
+    {
+      "key": "missingObjectId",
+      "value": "000000000000000000000000"
     }
   ],
   "item": [
@@ -899,6 +919,764 @@
               ]
             },
             "description": "Returns a validation error for an invalid query parameter."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (filter by category, city, price_to)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has events and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.events.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?category={{eventCategory}}&city={{eventCity}}&price_to=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "{{eventCategory}}"
+                },
+                {
+                  "key": "city",
+                  "value": "{{eventCity}}"
+                },
+                {
+                  "key": "price_to",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Lab 4: filters events by category, city and upper price bound (price_to=0 returns only free events)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (filter by date range and user)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has events and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.events.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?date_from=20260101&date_to=20261231&user={{username}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "20260101"
+                },
+                {
+                  "key": "date_to",
+                  "value": "20261231"
+                },
+                {
+                  "key": "user",
+                  "value": "{{username}}"
+                }
+              ]
+            },
+            "description": "Lab 4: filters events by date range (YYYYMMDD) and organizer username."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events (invalid category)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"category\" parameter');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?category=not-a-category",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "not-a-category"
+                }
+              ]
+            },
+            "description": "Lab 4: rejects a category value outside {meetup, concert, exhibition, party, other}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id (found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains event id and title\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get(\"eventId\"));",
+                  "  pm.expect(json.title).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Lab 4: fetches a single event by id. Run after POST /events (create) saved eventId."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id (not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Not found\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{missingObjectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{missingObjectId}}"
+              ]
+            },
+            "description": "Lab 4: checks 404 response for an unknown event id."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id (unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"{{eventCategory}}\",\n  \"price\": {{eventPrice}},\n  \"city\": \"{{eventCity}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Lab 4: run in a clean cookie jar or after logout. Editing events requires an authenticated organizer session."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id (success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Session cookie is returned\", function () {",
+                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"{{eventCategory}}\",\n  \"price\": {{eventPrice}},\n  \"city\": \"{{eventCity}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Lab 4: updates category, price and city for the event created by the current organizer. Requires an authenticated session."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id (invalid category)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"category\" field');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"not-a-category\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Lab 4: rejects a category value outside the allowed enum."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id (clear city)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "Lab 4: empty city string removes events.location.city from the event."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id (not organizer / not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"{{eventCategory}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{missingObjectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{missingObjectId}}"
+              ]
+            },
+            "description": "Lab 4: editing an unknown event (or an event that belongs to another organizer) returns 404."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organizers",
+      "description": "Lab 4 endpoints for discovering organizers and their events.",
+      "item": [
+        {
+          "name": "GET /users (list and capture userId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has users and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.users).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.users.length);",
+                  "});",
+                  "",
+                  "pm.test(\"Capture first matching user id\", function () {",
+                  "  var json = pm.response.json();",
+                  "  if (json.users.length > 0) {",
+                  "    pm.collectionVariables.set(\"userId\", json.users[0].id);",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test(\"password_hash must not be exposed\", function () {",
+                  "  var json = pm.response.json();",
+                  "  json.users.forEach(function (user) {",
+                  "    pm.expect(user).to.not.have.property(\"password_hash\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?name={{fullName}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "{{fullName}}"
+                }
+              ]
+            },
+            "description": "Lab 4: lists organizers filtered by name substring and stores the first id in the userId variable for later requests."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has users and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.users).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.users.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Lab 4: lists organizers using limit/offset pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users (invalid limit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"limit\" parameter');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?limit=-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "-1"
+                }
+              ]
+            },
+            "description": "Lab 4: rejects a negative limit."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id (found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains public fields only\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get(\"userId\"));",
+                  "  pm.expect(json.full_name).to.be.a(\"string\");",
+                  "  pm.expect(json.username).to.be.a(\"string\");",
+                  "  pm.expect(json).to.not.have.property(\"password_hash\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Lab 4: fetches organizer card by id. Run after GET /users captured userId."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id (not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Not found\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{missingObjectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{missingObjectId}}"
+              ]
+            },
+            "description": "Lab 4: checks 404 response for an unknown organizer id."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id/events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has events and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.events.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "events"
+              ]
+            },
+            "description": "Lab 4: lists events created by the given organizer."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id/events (user not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"User not found\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{missingObjectId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{missingObjectId}}",
+                "events"
+              ]
+            },
+            "description": "Lab 4: returns 404 when organizer with the given id does not exist."
           },
           "response": []
         }

@@ -21,14 +21,17 @@ async def init_mongodb_module(settings: Settings) -> MongoModule:
 
     await client.admin.command("ping")
     await database["users"].create_index("username", unique=True)
-    await database["events"].create_index("title", unique=True)
+    await database["events"].create_index("title")
+    await database["events"].create_index("created_by")
     await database["events"].create_index(
         [
             ("title", ASCENDING),
             ("created_by", ASCENDING),
         ]
     )
-    await database["events"].create_index("created_by")
+    await database["events"].create_index("category")
+    await database["events"].create_index("price")
+    await database["events"].create_index("location.city")
 
     return MongoModule(
         client=client,

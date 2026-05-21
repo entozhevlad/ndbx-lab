@@ -1,6 +1,9 @@
 from collections.abc import Mapping
 from datetime import datetime
 
+from bson import ObjectId
+from bson.errors import InvalidId
+
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 
@@ -43,6 +46,20 @@ def get_required_string_field(
     return value
 
 
+def get_optional_string_field(
+    payload: Mapping[str, object],
+    field_name: str,
+) -> str | None:
+    if field_name not in payload:
+        return None
+
+    value = payload.get(field_name)
+    if not isinstance(value, str):
+        raise InvalidFieldError(field_name)
+
+    return value
+
+
 def get_required_rfc3339_field(
     payload: Mapping[str, object],
     field_name: str,
@@ -56,12 +73,40 @@ def parse_uint_parameter(value: str, field_name: str) -> int:
     try:
         parsed = int(value)
     except ValueError as exc:
-        raise InvalidParameterError(field_name) from exc
+        raise InvalidFieldError(field_name) from exc
 
     if parsed < 0:
-        raise InvalidParameterError(field_name)
+        raise InvalidFieldError(field_name)
 
     return parsed
+
+
+def parse_non_blank_parameter(value: str, field_name: str) -> str:
+    if value.strip() == "":
+        raise InvalidFieldError(field_name)
+
+    return value
+
+
+def parse_object_id_parameter(value: str, field_name: str) -> str:
+    try:
+        ObjectId(value)
+    except (InvalidId, TypeError) as exc:
+        raise InvalidFieldError(field_name) from exc
+
+    return value
+
+
+def parse_yyyymmdd_parameter(value: str, field_name: str) -> str:
+    if len(value) != 8 or not value.isdigit():
+        raise InvalidFieldError(field_name)
+
+    try:
+        datetime.strptime(value, "%Y%m%d")
+    except ValueError as exc:
+        raise InvalidFieldError(field_name) from exc
+
+    return value
 
 
 def message_response(status_code: int, message: str) -> JSONResponse:

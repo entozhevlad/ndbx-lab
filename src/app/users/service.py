@@ -52,6 +52,47 @@ class UserService:
 
         return str(user_id)
 
+    async def get_user_id_by_username(self, username: str) -> str | None:
+        user = await self._user_store.get_user_by_username(username)
+        if user is None:
+            return None
+
+        user_id = user.get("_id")
+        if user_id is None:
+            return None
+
+        return str(user_id)
+
+    async def get_public_user(self, user_id: str) -> dict[str, object] | None:
+        user = await self._user_store.get_public_user_by_id(user_id)
+        if user is None:
+            return None
+
+        return self._serialize_user(user)
+
+    async def list_users(
+        self,
+        name: str,
+        user_id: str | None,
+        limit: int | None,
+        offset: int,
+    ) -> list[dict[str, object]]:
+        users = await self._user_store.list_public_users(
+            name=name,
+            user_id=user_id,
+            limit=limit,
+            offset=offset,
+        )
+        return [self._serialize_user(user) for user in users]
+
+    @staticmethod
+    def _serialize_user(user: dict[str, object]) -> dict[str, object]:
+        return {
+            "id": str(user.get("_id", "")),
+            "full_name": _get_string(user.get("full_name")),
+            "username": _get_string(user.get("username")),
+        }
+
 
 def _hash_password(password: str) -> str:
     return bcrypt.hashpw(
@@ -65,3 +106,7 @@ def _password_matches(password: str, password_hash: str) -> bool:
         password.encode("utf-8"),
         password_hash.encode("utf-8"),
     )
+
+
+def _get_string(value: object) -> str:
+    return value if isinstance(value, str) else ""
