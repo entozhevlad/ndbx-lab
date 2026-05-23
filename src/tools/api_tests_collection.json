@@ -69,6 +69,26 @@
     {
       "key": "missingObjectId",
       "value": "000000000000000000000000"
+    },
+    {
+      "key": "reviewId",
+      "value": ""
+    },
+    {
+      "key": "reviewComment",
+      "value": "Великолепный спектакль! Идите, даже не думайте!"
+    },
+    {
+      "key": "reviewRating",
+      "value": "5"
+    },
+    {
+      "key": "reviewUpdatedComment",
+      "value": "На самом деле, так себе спектакль..."
+    },
+    {
+      "key": "reviewUpdatedRating",
+      "value": "3"
     }
   ],
   "item": [
@@ -1957,6 +1977,595 @@
               ]
             },
             "description": "Lab 4: returns 404 when organizer with the given id does not exist."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "description": "Lab 6: reviews for events backed by Cassandra and Redis. Recommended order: unauthorized, create, duplicate, list, update, list with reviews include.",
+      "item": [
+        {
+          "name": "POST /events/:event_id/reviews (unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewComment}}\",\n  \"rating\": {{reviewRating}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ]
+            },
+            "description": "Lab 6: leaving a review requires an authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/reviews (create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains review id\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"reviewId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewComment}}\",\n  \"rating\": {{reviewRating}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ]
+            },
+            "description": "Lab 6: authenticated user leaves a review. Stores the new review id in the collection variable."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/reviews (duplicate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Already exists\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewComment}}\",\n  \"rating\": {{reviewRating}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ]
+            },
+            "description": "Lab 6: a user is allowed only one review per event."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/reviews (invalid rating)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"rating\" field');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewComment}}\",\n  \"rating\": 42\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ]
+            },
+            "description": "Lab 6: rating must be an integer between 1 and 5 inclusive."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/reviews (event not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Event not found\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewComment}}\",\n  \"rating\": {{reviewRating}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{missingObjectId}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{missingObjectId}}",
+                "reviews"
+              ]
+            },
+            "description": "Lab 6: returns 404 when there is no such event."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id/reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has reviews and count\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.reviews).to.be.an(\"array\");",
+                  "  pm.expect(json.count).to.eql(json.reviews.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews?limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Lab 6: list reviews for the event with limit/offset pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id/reviews (invalid limit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"limit\" field');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews?limit=-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "-1"
+                }
+              ]
+            },
+            "description": "Lab 6: negative limit returns a validation error."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id/reviews/:review_id (success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewUpdatedComment}}\",\n  \"rating\": {{reviewUpdatedRating}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "description": "Lab 6: owner edits both rating and comment. Run after POST /events/:event_id/reviews (create)."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /events/:event_id/reviews/:review_id (unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"{{reviewUpdatedComment}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/reviews/{{reviewId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "description": "Lab 6: editing a review requires an authenticated owner of the review."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events?include=reviews (list with reviews)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Each event has reviews aggregate\", function () {",
+                  "  var json = pm.response.json();",
+                  "  json.events.forEach(function (event) {",
+                  "    pm.expect(event).to.have.property(\"reviews\");",
+                  "    pm.expect(event.reviews.count).to.be.a(\"number\");",
+                  "    pm.expect(event.reviews.rating).to.be.a(\"number\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?include=reviews&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reviews"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lab 6: GET /events returns reviews aggregate on every event when include=reviews is set."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id?include=reactions,reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response includes both reactions and reviews\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property(\"reactions\");",
+                  "  pm.expect(json).to.have.property(\"reviews\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}?include=reactions,reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reactions,reviews"
+                }
+              ]
+            },
+            "description": "Lab 6: include parameter supports multiple comma-separated values."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id/events?include=reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Each event has reviews aggregate\", function () {",
+                  "  var json = pm.response.json();",
+                  "  json.events.forEach(function (event) {",
+                  "    pm.expect(event).to.have.property(\"reviews\");",
+                  "    pm.expect(event.reviews.count).to.be.a(\"number\");",
+                  "    pm.expect(event.reviews.rating).to.be.a(\"number\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/events?include=reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reviews"
+                }
+              ]
+            },
+            "description": "Lab 6: organizer's events with aggregated reviews counters."
           },
           "response": []
         }

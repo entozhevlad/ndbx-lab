@@ -12,6 +12,7 @@ class Settings:
     app_user_session_create_max_attempts: int
     app_user_session_store_retry_attempts: int
     app_like_ttl: int
+    app_event_reviews_ttl: int
     redis_host: str
     redis_port: int
     redis_password: str
@@ -52,6 +53,7 @@ def load_settings() -> Settings:
         mongodb_password=_require_env("MONGODB_PASSWORD"),
         mongodb_db=_require_env("MONGODB_DATABASE"),
         app_like_ttl=int(_require_env("APP_LIKE_TTL")),
+        app_event_reviews_ttl=int(_require_env("APP_EVENT_REVIEWS_TTL")),
         cassandra_hosts=_parse_hosts(_require_env("CASSANDRA_HOSTS")),
         cassandra_port=int(_require_env("CASSANDRA_PORT")),
         cassandra_username=_require_env("CASSANDRA_USERNAME"),
@@ -71,6 +73,7 @@ def load_settings() -> Settings:
         "APP_USER_SESSION_STORE_RETRY_ATTEMPTS",
     )
     _require_positive(settings.app_like_ttl, "APP_LIKE_TTL")
+    _require_positive(settings.app_event_reviews_ttl, "APP_EVENT_REVIEWS_TTL")
     _require_positive(settings.redis_port, "REDIS_PORT")
     _require_positive(settings.mongodb_port, "MONGODB_PORT")
     _require_positive(settings.cassandra_port, "CASSANDRA_PORT")

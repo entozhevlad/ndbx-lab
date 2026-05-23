@@ -1,15 +1,10 @@
 from fastapi import APIRouter, Request, Response, status
 
-from app.api.common import (
-    InvalidFieldError,
-    get_existing_session,
-    get_required_string_field,
-    invalid_field_response,
-    message_response,
-    parse_json_body,
-    refresh_request_session_cookie,
-    set_response_session_cookie,
-)
+from app.api.common import (InvalidFieldError, get_existing_session,
+                            get_required_string_field, invalid_field_response,
+                            message_response, parse_json_body,
+                            refresh_request_session_cookie,
+                            set_response_session_cookie)
 from app.auth.service import InvalidCredentialsError
 from app.user_session import clear_session_cookie, get_request_sid
 

@@ -3,7 +3,6 @@ from datetime import datetime
 
 from bson import ObjectId
 from bson.errors import InvalidId
-
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 

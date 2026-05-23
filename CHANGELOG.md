@@ -5,6 +5,19 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и этот проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.4.0] - 2026-05-13
+### Добавлено
+- Добавлены эндпоинты для отзывов на мероприятия:
+  - `POST /events/{event_id}/reviews` — создание отзыва
+  - `GET /events/{event_id}/reviews` — список отзывов с пагинацией
+  - `PATCH /events/{event_id}/reviews/{review_id}` — редактирование отзыва владельцем
+- Добавлен параметр `?include=reviews` на эндпоинты:
+  - `GET /events`,
+  - `GET /events/{event_id}`,
+  - `GET /users/{user_id}/events`
+- Добавлена таблица `event_reviews` в Cassandra
+- Добавлено кэширование агрегатов по отзывам в Redis
+
 ## [1.3.0] - 2026-04-25
 ### Добавлено
 - Добавлены эндпоинты `POST /events/{event_id}/like` и `POST /events/{event_id}/dislike` для реакций на мероприятия

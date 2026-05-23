@@ -1,24 +1,15 @@
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (
-    InvalidFieldError,
-    get_required_string_field,
-    include_has,
-    invalid_field_response,
-    message_response,
-    parse_json_body,
-    parse_non_blank_parameter,
-    parse_object_id_parameter,
-    parse_uint_parameter,
-    parse_yyyymmdd_parameter,
-    refresh_request_session,
-    set_response_session_cookie,
-)
-from app.api.events.handler import (
-    INCLUDE_REACTIONS,
-    attach_reactions,
-)
+from app.api.common import (InvalidFieldError, get_required_string_field,
+                            include_has, invalid_field_response,
+                            message_response, parse_json_body,
+                            parse_non_blank_parameter,
+                            parse_object_id_parameter, parse_uint_parameter,
+                            parse_yyyymmdd_parameter, refresh_request_session,
+                            set_response_session_cookie)
+from app.api.events.handler import (INCLUDE_REACTIONS, INCLUDE_REVIEWS,
+                                    attach_reactions, attach_reviews)
 from app.api.schemas import EventListResponse, UserListResponse, UserResponse
 from app.events.service import EVENT_CATEGORIES
 from app.user_session import get_request_sid
@@ -203,6 +194,9 @@ async def list_user_events(request: Request, user_id: str) -> Response:
 
     if include_has(request, INCLUDE_REACTIONS):
         await attach_reactions(request.app.state.reaction_service, events)
+
+    if include_has(request, INCLUDE_REVIEWS):
+        await attach_reviews(request.app.state.review_service, events)
 
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
