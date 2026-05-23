@@ -76,6 +76,11 @@ class EventLocationResponse(ApiModel):
     city: str | None = None
 
 
+class EventReactionsResponse(ApiModel):
+    likes: int
+    dislikes: int
+
+
 class EventResponse(ApiModel):
     id: str
     title: str
@@ -87,6 +92,7 @@ class EventResponse(ApiModel):
     finished_at: str
     category: str | None = None
     price: int | None = None
+    reactions: EventReactionsResponse | None = None
 
 
 class EventCreatedResponse(ApiModel):

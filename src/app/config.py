@@ -11,6 +11,7 @@ class Settings:
     app_user_session_ttl: int
     app_user_session_create_max_attempts: int
     app_user_session_store_retry_attempts: int
+    app_like_ttl: int
     redis_host: str
     redis_port: int
     redis_password: str
@@ -20,6 +21,12 @@ class Settings:
     mongodb_username: str
     mongodb_password: str
     mongodb_db: str
+    cassandra_hosts: tuple[str, ...]
+    cassandra_port: int
+    cassandra_username: str
+    cassandra_password: str
+    cassandra_keyspace: str
+    cassandra_consistency: str
 
 
 def load_settings() -> Settings:
@@ -41,9 +48,16 @@ def load_settings() -> Settings:
         redis_db=int(_require_env("REDIS_DB")),
         mongodb_host=_require_env("MONGODB_HOST"),
         mongodb_port=int(_require_env("MONGODB_PORT")),
-        mongodb_username=_get_env("MONGODB_USER", "MONGODB_USERNAME") or "",
-        mongodb_password=_get_env("MONGODB_PASSWORD") or "",
+        mongodb_username=_require_env("MONGODB_USER", "MONGODB_USERNAME"),
+        mongodb_password=_require_env("MONGODB_PASSWORD"),
         mongodb_db=_require_env("MONGODB_DATABASE"),
+        app_like_ttl=int(_require_env("APP_LIKE_TTL")),
+        cassandra_hosts=_parse_hosts(_require_env("CASSANDRA_HOSTS")),
+        cassandra_port=int(_require_env("CASSANDRA_PORT")),
+        cassandra_username=_require_env("CASSANDRA_USERNAME"),
+        cassandra_password=_require_env("CASSANDRA_PASSWORD"),
+        cassandra_keyspace=_require_env("CASSANDRA_KEYSPACE"),
+        cassandra_consistency=_require_env("CASSANDRA_CONSISTENCY"),
     )
 
     _require_positive(settings.app_port, "APP_PORT")
@@ -56,13 +70,27 @@ def load_settings() -> Settings:
         settings.app_user_session_store_retry_attempts,
         "APP_USER_SESSION_STORE_RETRY_ATTEMPTS",
     )
+    _require_positive(settings.app_like_ttl, "APP_LIKE_TTL")
     _require_positive(settings.redis_port, "REDIS_PORT")
     _require_positive(settings.mongodb_port, "MONGODB_PORT")
+    _require_positive(settings.cassandra_port, "CASSANDRA_PORT")
 
     if settings.mongodb_db.strip() == "":
         raise ValueError("MONGODB_DATABASE не должен быть пустым")
 
+    if not settings.cassandra_hosts:
+        raise ValueError("CASSANDRA_HOSTS не должен быть пустым")
+
+    if settings.cassandra_keyspace.strip() == "":
+        raise ValueError("CASSANDRA_KEYSPACE не должен быть пустым")
+
     return settings
+
+
+def _parse_hosts(value: str) -> tuple[str, ...]:
+    return tuple(
+        host.strip() for host in value.split(",") if host.strip() != ""
+    )
 
 
 def _require_positive(value: int, env_name: str) -> None:
@@ -71,18 +99,9 @@ def _require_positive(value: int, env_name: str) -> None:
 
 
 def _require_env(*names: str) -> str:
-    value = _get_env(*names)
-    if value is None:
-        joined_names = ", ".join(names)
-        raise KeyError(joined_names)
-
-    return value
-
-
-def _get_env(*names: str) -> str | None:
     for name in names:
         value = os.environ.get(name)
         if value is not None:
             return value
 
-    return None
+    raise KeyError(", ".join(names))

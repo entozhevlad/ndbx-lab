@@ -115,6 +115,12 @@ class EventService:
 
         return self._serialize_event(event)
 
+    async def list_event_ids_by_title(self, title: str) -> list[str]:
+        if title == "":
+            return []
+
+        return await self._event_store.list_event_ids_by_title(title)
+
     async def update_event(
         self,
         event_id: str,

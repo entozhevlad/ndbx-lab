@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "bcrypt>=5.0.0",
+    "cassandra-driver>=3.29.0",
     "fastapi>=0.129.0",
     "motor>=3.7.1",
     "mypy>=1.19.1",
@@ -21,6 +22,11 @@ python_version = "3.14"
 mypy_path = ["src"]
 namespace_packages = true
 explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "cassandra.*"
+ignore_missing_imports = true
+follow_untyped_imports = true
 
 [dependency-groups]
 dev = [

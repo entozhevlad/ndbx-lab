@@ -9,6 +9,7 @@ from app.api.common import (
     get_optional_string_field,
     get_required_rfc3339_field,
     get_required_string_field,
+    include_has,
     invalid_field_response,
     message_response,
     parse_json_body,
@@ -21,7 +22,10 @@ from app.api.common import (
 )
 from app.api.schemas import EventCreatedResponse, EventListResponse, EventResponse
 from app.events.service import EVENT_CATEGORIES, EventAlreadyExistsError
+from app.reactions.service import ReactionService
 from app.user_session import get_request_sid
+
+INCLUDE_REACTIONS = "reactions"
 
 events_router = APIRouter()
 
@@ -187,6 +191,12 @@ async def list_events(request: Request) -> Response:
         offset=offset,
     )
 
+    if include_has(request, INCLUDE_REACTIONS):
+        await attach_reactions(
+            request.app.state.reaction_service,
+            events,
+        )
+
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
@@ -209,12 +219,92 @@ async def get_event(request: Request, event_id: str) -> Response:
         _set_request_session_cookie_if_present(request, response)
         return response
 
+    if include_has(request, INCLUDE_REACTIONS):
+        await attach_reactions(
+            request.app.state.reaction_service,
+            [event],
+        )
+
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
         content=event,
     )
     _set_request_session_cookie_if_present(request, response)
     return response
+
+
+@events_router.post(
+    "/events/{event_id}/like",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def like_event(request: Request, event_id: str) -> Response:
+    return await _handle_reaction(request, event_id, like=True)
+
+
+@events_router.post(
+    "/events/{event_id}/dislike",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def dislike_event(request: Request, event_id: str) -> Response:
+    return await _handle_reaction(request, event_id, like=False)
+
+
+async def _handle_reaction(
+    request: Request,
+    event_id: str,
+    like: bool,
+) -> Response:
+    session = await get_existing_session(request)
+    if session is None or session.user_id is None:
+        response = Response(status_code=status.HTTP_401_UNAUTHORIZED)
+        await refresh_request_session_cookie(request, response)
+        return response
+
+    refreshed = await request.app.state.session_module.service.refresh_session_if_exists(
+        session.sid
+    )
+    if not refreshed:
+        response = Response(status_code=status.HTTP_401_UNAUTHORIZED)
+        await refresh_request_session_cookie(request, response)
+        return response
+
+    reaction_service: ReactionService = request.app.state.reaction_service
+    if like:
+        ok = await reaction_service.put_like(event_id, session.user_id)
+    else:
+        ok = await reaction_service.put_dislike(event_id, session.user_id)
+
+    if not ok:
+        response = message_response(
+            status.HTTP_404_NOT_FOUND,
+            "Event not found",
+        )
+        set_response_session_cookie(request, response, session.sid)
+        return response
+
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    set_response_session_cookie(request, response, session.sid)
+    return response
+
+
+async def attach_reactions(
+    reaction_service: ReactionService,
+    events: list[dict[str, object]],
+) -> None:
+    titles: list[str] = []
+    for event in events:
+        title = event.get("title")
+        if isinstance(title, str) and title != "":
+            titles.append(title)
+
+    counts = await reaction_service.counts_for_titles(titles)
+
+    for event in events:
+        title = event.get("title")
+        likes, dislikes = 0, 0
+        if isinstance(title, str) and title in counts:
+            likes, dislikes = counts[title]
+        event["reactions"] = {"likes": likes, "dislikes": dislikes}
 
 
 @events_router.patch("/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)

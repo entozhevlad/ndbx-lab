@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "7a4c20ef-5d2e-4789-bd3d-2ff20d77d8ad",
     "name": "ndbx-lab",
-    "description": "Postman collection for Labs 2, 3, and 4: Redis-backed sessions, MongoDB users, authentication, events, event editing, filtered search, and organizer endpoints (lab 4).",
+    "description": "Postman collection for Labs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1376,6 +1376,238 @@
             "description": "Lab 4: editing an unknown event (or an event that belongs to another organizer) returns 404."
           },
           "response": []
+        },
+        {
+          "name": "GET /events?include=reactions (list with reactions)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Each event has reactions counters\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.events).to.be.an(\"array\");",
+                  "  json.events.forEach(function (event) {",
+                  "    pm.expect(event).to.have.property(\"reactions\");",
+                  "    pm.expect(event.reactions.likes).to.be.a(\"number\");",
+                  "    pm.expect(event.reactions.dislikes).to.be.a(\"number\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?include=reactions&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reactions"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lab 5: GET /events returns reactions object on every event when include=reactions is set."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:event_id?include=reactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Event response includes reactions\", function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property(\"reactions\");",
+                  "  pm.expect(json.reactions.likes).to.be.a(\"number\");",
+                  "  pm.expect(json.reactions.dislikes).to.be.a(\"number\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}?include=reactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reactions"
+                }
+              ]
+            },
+            "description": "Lab 5: GET /events/:id returns reactions when include=reactions is set."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/like (unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/like",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "like"
+              ]
+            },
+            "description": "Lab 5: run in a clean cookie jar or after logout. Liking events requires an authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/like (success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/like",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "like"
+              ]
+            },
+            "description": "Lab 5: authenticated user likes the event. Repeated call is idempotent — it just updates created_at in Cassandra."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/dislike (success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/dislike",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "dislike"
+              ]
+            },
+            "description": "Lab 5: switching from a like to a dislike updates the same Cassandra row (one reaction per user per event)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:event_id/like (event not found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message is correct\", function () {",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Event not found\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{missingObjectId}}/like",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{missingObjectId}}",
+                "like"
+              ]
+            },
+            "description": "Lab 5: reacting to an unknown event id returns 404."
+          },
+          "response": []
         }
       ]
     },
@@ -1639,7 +1871,55 @@
                 "events"
               ]
             },
-            "description": "Lab 4: lists events created by the given organizer."
+            "description": "Lab 4: lists events created by the given organizer. Supports ?include=reactions on lab 5."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:user_id/events?include=reactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Each event has reactions counters\", function () {",
+                  "  var json = pm.response.json();",
+                  "  json.events.forEach(function (event) {",
+                  "    pm.expect(event).to.have.property(\"reactions\");",
+                  "    pm.expect(event.reactions.likes).to.be.a(\"number\");",
+                  "    pm.expect(event.reactions.dislikes).to.be.a(\"number\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/events?include=reactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "reactions"
+                }
+              ]
+            },
+            "description": "Lab 5: organizer's events with aggregated reactions counters."
           },
           "response": []
         },

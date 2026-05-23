@@ -12,6 +12,8 @@ services:
         condition: service_started
       mongodb-init:
         condition: service_completed_successfully
+      cassandra-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   redis:
@@ -229,6 +231,38 @@ services:
       - /scripts/mongodb/init-cluster.sh
     restart: "no"
 
+  cassandra-test:
+    image: cassandra:4.1
+    env_file:
+      - .env.local
+    hostname: ${CASSANDRA_HOSTS}
+    ports:
+      - "${CASSANDRA_PORT}:${CASSANDRA_PORT}"
+    environment:
+      CASSANDRA_NATIVE_TRANSPORT_PORT: ${CASSANDRA_PORT}
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "cqlsh -e 'describe keyspaces' ${CASSANDRA_HOSTS} ${CASSANDRA_PORT} || exit 1"
+      start_period: ${CASSANDRA_HEALTHCHECK_START_PERIOD}
+    restart: unless-stopped
+
+  cassandra-init:
+    image: cassandra:4.1
+    env_file:
+      - .env.local
+    depends_on:
+      cassandra-test:
+        condition: service_healthy
+    volumes:
+      - ./scripts/cassandra:/scripts/cassandra:ro
+    command:
+      - sh
+      - /scripts/cassandra/init-cluster.sh
+    restart: "no"
+
 volumes:
   config1-data:
     name: ${CONFIG1_VOLUME}
@@ -248,3 +282,5 @@ volumes:
     name: ${SHARD2_B_VOLUME}
   shard2c-data:
     name: ${SHARD2_C_VOLUME}
+  cassandra-data:
+    name: ${CASSANDRA_VOLUME}

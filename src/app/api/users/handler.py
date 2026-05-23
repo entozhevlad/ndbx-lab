@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.api.common import (
     InvalidFieldError,
     get_required_string_field,
+    include_has,
     invalid_field_response,
     message_response,
     parse_json_body,
@@ -13,6 +14,10 @@ from app.api.common import (
     parse_yyyymmdd_parameter,
     refresh_request_session,
     set_response_session_cookie,
+)
+from app.api.events.handler import (
+    INCLUDE_REACTIONS,
+    attach_reactions,
 )
 from app.api.schemas import EventListResponse, UserListResponse, UserResponse
 from app.events.service import EVENT_CATEGORIES
@@ -195,6 +200,9 @@ async def list_user_events(request: Request, user_id: str) -> Response:
         limit=limit,
         offset=offset,
     )
+
+    if include_has(request, INCLUDE_REACTIONS):
+        await attach_reactions(request.app.state.reaction_service, events)
 
     response = JSONResponse(
         status_code=status.HTTP_200_OK,
