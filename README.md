@@ -148,6 +148,40 @@ Endpoint для создания и обновления анонимной по
 
 ## Архитектура
 
+```mermaid
+graph LR
+    Client["Client<br/>Postman · curl · Swagger UI"]
+
+    subgraph App["FastAPI service"]
+        direction TB
+        API["API handlers<br/>/session · /auth · /users<br/>/events · /events/:id/reviews<br/>/recommendations"]
+        Logic["Service / Store / Cache layer"]
+        API --> Logic
+    end
+
+    Client -->|"HTTP + X-Session-Id cookie"| App
+
+    Redis[("Redis<br/>· sessions<br/>· reactions cache<br/>· reviews cache<br/>· recommendations cache")]
+    Mongo[("MongoDB sharded<br/>· users<br/>· events")]
+    Cassandra[("Cassandra<br/>· event_reactions<br/>· event_reviews")]
+    Neo4j[("Neo4j<br/>(User)-[:LIKED]→(Event)")]
+
+    Logic -->|"sessions + cache-aside"| Redis
+    Logic -->|"CRUD users / events"| Mongo
+    Logic -->|"event_reactions + event_reviews"| Cassandra
+    Logic -->|"sync events, record likes, query recs"| Neo4j
+
+    classDef store fill:#1f2937,stroke:#9ca3af,color:#f9fafb
+    class Redis,Mongo,Cassandra,Neo4j store
+```
+
+Каждое хранилище отвечает за свою область:
+
+- **Redis** — TTL-сессии (`sid:{...}`) и Cache-Aside для агрегатов лайков, рейтингов и рекомендаций.
+- **MongoDB (sharded)** — основное хранилище пользователей и мероприятий.
+- **Cassandra** — широкие таблицы реакций и отзывов с шардированием по `event_id`.
+- **Neo4j** — граф `User-[:LIKED]->Event`, по которому строятся рекомендации (Cypher-запрос находит «похожих» пользователей и их лайки).
+
 Приложение построено послойно, чтобы HTTP-часть, бизнес-логика и работа с Redis были разделены.
 
 - `src/app/main.py` и `src/app/service.py` отвечают за создание FastAPI-приложения, загрузку конфигурации и инициализацию Redis и MongoDB в lifecycle
