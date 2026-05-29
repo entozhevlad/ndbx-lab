@@ -7,46 +7,6 @@
   },
   "variable": [
     {
-      "key": "baseUrl",
-      "value": "http://localhost:8080"
-    },
-    {
-      "key": "fullName",
-      "value": "Джон Доу"
-    },
-    {
-      "key": "username",
-      "value": "j0hnd0e42"
-    },
-    {
-      "key": "password",
-      "value": "<set-in-postman>"
-    },
-    {
-      "key": "wrongPassword",
-      "value": "<set-wrong-password>"
-    },
-    {
-      "key": "eventTitle",
-      "value": "Мой день рождения"
-    },
-    {
-      "key": "eventAddress",
-      "value": "г. Санкт-Петербург, ул. Пушкина, дом Колотушкина"
-    },
-    {
-      "key": "eventStartedAt",
-      "value": "2026-04-01T12:00:00+03:00"
-    },
-    {
-      "key": "eventFinishedAt",
-      "value": "2026-04-01T23:00:00+03:00"
-    },
-    {
-      "key": "eventDescription",
-      "value": "Приглашаю вас отпраздновать мое 30-с-чем-то-летие"
-    },
-    {
       "key": "eventId",
       "value": ""
     },
@@ -55,40 +15,8 @@
       "value": ""
     },
     {
-      "key": "eventCategory",
-      "value": "party"
-    },
-    {
-      "key": "eventCity",
-      "value": "Москва"
-    },
-    {
-      "key": "eventPrice",
-      "value": "1000"
-    },
-    {
-      "key": "missingObjectId",
-      "value": "000000000000000000000000"
-    },
-    {
       "key": "reviewId",
       "value": ""
-    },
-    {
-      "key": "reviewComment",
-      "value": "Великолепный спектакль! Идите, даже не думайте!"
-    },
-    {
-      "key": "reviewRating",
-      "value": "5"
-    },
-    {
-      "key": "reviewUpdatedComment",
-      "value": "На самом деле, так себе спектакль..."
-    },
-    {
-      "key": "reviewUpdatedRating",
-      "value": "3"
     }
   ],
   "item": [
@@ -265,13 +193,15 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status code is 201 (or 409 on rerun)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
                   "});",
                   "",
-                  "pm.test(\"Session cookie is set\", function () {",
-                  "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
-                  "});"
+                  "if (pm.response.code === 201) {",
+                  "  pm.test(\"Session cookie is set\", function () {",
+                  "    pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
+                  "  });",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -644,9 +574,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/events",
+              "raw": "{{baseUrlNoCookie}}/events",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "events"
@@ -657,21 +587,69 @@
           "response": []
         },
         {
+          "name": "POST /auth/login (re-login for events)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Re-establish auth session before tests that require it. Needed because the Auth folder logs out at the end."
+          },
+          "response": []
+        },
+        {
           "name": "POST /events (create)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status code is 201 (or 409 on rerun)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
                   "});",
                   "",
-                  "pm.test(\"Response contains event id\", function () {",
-                  "  var json = pm.response.json();",
-                  "  pm.expect(json.id).to.be.a(\"string\");",
-                  "  pm.collectionVariables.set(\"eventId\", json.id);",
-                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.test(\"Response contains event id\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.be.a(\"string\");",
+                  "    pm.collectionVariables.set(\"eventId\", json.id);",
+                  "  });",
+                  "}",
                   "",
                   "pm.test(\"Session cookie is returned\", function () {",
                   "  pm.expect(pm.response.headers.has(\"Set-Cookie\")).to.eql(true);",
@@ -824,6 +802,8 @@
                   "  var json = pm.response.json();",
                   "  pm.expect(json.events).to.be.an(\"array\");",
                   "  pm.expect(json.count).to.eql(json.events.length);",
+                  "  pm.expect(json.events.length).to.be.above(0);",
+                  "  pm.collectionVariables.set(\"eventId\", json.events[0].id);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -1163,6 +1143,15 @@
           "name": "PATCH /events/:event_id (unauthorized)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.request.url.toString(), function () {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -1192,9 +1181,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "raw": "{{baseUrlNoCookie}}/events/{{eventId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "events",
@@ -1202,6 +1191,52 @@
               ]
             },
             "description": "Lab 4: run in a clean cookie jar or after logout. Editing events requires an authenticated organizer session."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/login (re-login after PATCH unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Re-establish session after the unauthorized test cleared cookies."
           },
           "response": []
         },
@@ -1497,6 +1532,15 @@
           "name": "POST /events/:event_id/like (unauthorized)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.request.url.toString(), function () {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -1512,9 +1556,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/events/{{eventId}}/like",
+              "raw": "{{baseUrlNoCookie}}/events/{{eventId}}/like",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "events",
@@ -1523,6 +1567,52 @@
               ]
             },
             "description": "Lab 5: run in a clean cookie jar or after logout. Liking events requires an authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/login (re-login after like unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Re-establish session after the unauthorized test cleared cookies."
           },
           "response": []
         },
@@ -1990,6 +2080,15 @@
           "name": "POST /events/:event_id/reviews (unauthorized)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.request.url.toString(), function () {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -2019,9 +2118,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/events/{{eventId}}/reviews",
+              "raw": "{{baseUrlNoCookie}}/events/{{eventId}}/reviews",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "events",
@@ -2034,21 +2133,82 @@
           "response": []
         },
         {
+          "name": "POST /auth/login (re-login for reviews)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Re-establish auth session before review tests that require it."
+          },
+          "response": []
+        },
+        {
           "name": "POST /events/:event_id/reviews (create)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "  pm.response.to.have.status(201);",
+                  "pm.test(\"Status code is 201 (or 409 on rerun)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
                   "});",
                   "",
-                  "pm.test(\"Response contains review id\", function () {",
-                  "  var json = pm.response.json();",
-                  "  pm.expect(json.id).to.be.a(\"string\");",
-                  "  pm.collectionVariables.set(\"reviewId\", json.id);",
-                  "});"
+                  "if (pm.response.code === 201) {",
+                  "  pm.test(\"Response contains review id\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.be.a(\"string\");",
+                  "    pm.collectionVariables.set(\"reviewId\", json.id);",
+                  "  });",
+                  "} else {",
+                  "  // Review уже существует — подхватываем его id через GET, чтобы дальше PATCH работал.",
+                  "  pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + \"/events/\" + pm.collectionVariables.get(\"eventId\") + \"/reviews?limit=1\",",
+                  "    method: \"GET\"",
+                  "  }, function (err, res) {",
+                  "    if (!err && res && res.json) {",
+                  "      var json = res.json();",
+                  "      if (json.reviews && json.reviews.length > 0) {",
+                  "        pm.collectionVariables.set(\"reviewId\", json.reviews[0].id);",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -2254,6 +2414,8 @@
                   "  var json = pm.response.json();",
                   "  pm.expect(json.reviews).to.be.an(\"array\");",
                   "  pm.expect(json.count).to.eql(json.reviews.length);",
+                  "  pm.expect(json.reviews.length).to.be.above(0);",
+                  "  pm.collectionVariables.set(\"reviewId\", json.reviews[0].id);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -2300,7 +2462,7 @@
                   "});",
                   "",
                   "pm.test(\"Error message is correct\", function () {",
-                  "  pm.expect(pm.response.json().message).to.eql('invalid \"limit\" field');",
+                  "  pm.expect(pm.response.json().message).to.eql('invalid \"limit\" parameter');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -2383,6 +2545,15 @@
           "name": "PATCH /events/:event_id/reviews/:review_id (unauthorized)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.request.url.toString(), function () {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -2412,9 +2583,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/events/{{eventId}}/reviews/{{reviewId}}",
+              "raw": "{{baseUrlNoCookie}}/events/{{eventId}}/reviews/{{reviewId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "events",
@@ -2579,6 +2750,15 @@
           "name": "GET /recommendations (unauthorized)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.request.url.toString(), function () {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
@@ -2594,15 +2774,61 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/recommendations",
+              "raw": "{{baseUrlNoCookie}}/recommendations",
               "host": [
-                "{{baseUrl}}"
+                "{{baseUrlNoCookie}}"
               ],
               "path": [
                 "recommendations"
               ]
             },
             "description": "Lab 7: получение рекомендаций требует авторизованной сессии."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/login (re-login for recommendations)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Re-establish auth session before the authed recommendations test."
           },
           "response": []
         },

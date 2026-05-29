@@ -72,17 +72,17 @@ def parse_uint_parameter(value: str, field_name: str) -> int:
     try:
         parsed = int(value)
     except ValueError as exc:
-        raise InvalidFieldError(field_name) from exc
+        raise InvalidParameterError(field_name) from exc
 
     if parsed < 0:
-        raise InvalidFieldError(field_name)
+        raise InvalidParameterError(field_name)
 
     return parsed
 
 
 def parse_non_blank_parameter(value: str, field_name: str) -> str:
     if value.strip() == "":
-        raise InvalidFieldError(field_name)
+        raise InvalidParameterError(field_name)
 
     return value
 
@@ -91,7 +91,7 @@ def parse_object_id_parameter(value: str, field_name: str) -> str:
     try:
         ObjectId(value)
     except (InvalidId, TypeError) as exc:
-        raise InvalidFieldError(field_name) from exc
+        raise InvalidParameterError(field_name) from exc
 
     return value
 
@@ -106,12 +106,12 @@ def include_has(request: Request, token: str) -> bool:
 
 def parse_yyyymmdd_parameter(value: str, field_name: str) -> str:
     if len(value) != 8 or not value.isdigit():
-        raise InvalidFieldError(field_name)
+        raise InvalidParameterError(field_name)
 
     try:
         datetime.strptime(value, "%Y%m%d")
     except ValueError as exc:
-        raise InvalidFieldError(field_name) from exc
+        raise InvalidParameterError(field_name) from exc
 
     return value
 

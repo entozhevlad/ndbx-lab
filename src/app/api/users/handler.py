@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (InvalidFieldError, get_required_string_field,
-                            include_has, invalid_field_response,
+from app.api.common import (InvalidFieldError, InvalidParameterError,
+                            get_required_string_field, include_has,
+                            invalid_field_response,
+                            invalid_parameter_response,
                             message_response, parse_json_body,
                             parse_non_blank_parameter,
                             parse_object_id_parameter, parse_uint_parameter,
@@ -83,8 +85,8 @@ async def list_users(request: Request) -> Response:
             if "offset" in params
             else 0
         )
-    except InvalidFieldError as exc:
-        response = invalid_field_response(exc.field_name)
+    except InvalidParameterError as exc:
+        response = invalid_parameter_response(exc.field_name)
         sid = get_request_sid(request)
         if sid is not None:
             set_response_session_cookie(request, response, sid)
@@ -170,11 +172,11 @@ async def list_user_events(request: Request, user_id: str) -> Response:
             else 0
         )
         if price_from is not None and price_to is not None and price_to < price_from:
-            raise InvalidFieldError("price_to")
+            raise InvalidParameterError("price_to")
         if date_from is not None and date_to is not None and date_to < date_from:
-            raise InvalidFieldError("date_to")
-    except InvalidFieldError as exc:
-        response = invalid_field_response(exc.field_name)
+            raise InvalidParameterError("date_to")
+    except InvalidParameterError as exc:
+        response = invalid_parameter_response(exc.field_name)
         sid = get_request_sid(request)
         if sid is not None:
             set_response_session_cookie(request, response, sid)
@@ -218,7 +220,7 @@ async def list_user_events(request: Request, user_id: str) -> Response:
 def _parse_event_category(value: str) -> str:
     parsed = parse_non_blank_parameter(value, "category")
     if parsed not in EVENT_CATEGORIES:
-        raise InvalidFieldError("category")
+        raise InvalidParameterError("category")
 
     return parsed
 
