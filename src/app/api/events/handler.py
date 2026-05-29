@@ -3,12 +3,13 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (InvalidFieldError, get_existing_session,
-                            get_optional_string_field,
+from app.api.common import (InvalidFieldError, InvalidParameterError,
+                            get_existing_session, get_optional_string_field,
                             get_required_rfc3339_field,
                             get_required_string_field, include_has,
-                            invalid_field_response, message_response,
-                            parse_json_body, parse_non_blank_parameter,
+                            invalid_field_response, invalid_parameter_response,
+                            message_response, parse_json_body,
+                            parse_non_blank_parameter,
                             parse_object_id_parameter, parse_uint_parameter,
                             parse_yyyymmdd_parameter,
                             refresh_request_session_cookie,
@@ -84,6 +85,8 @@ async def create_event(request: Request) -> Response:
         set_response_session_cookie(request, response, session.sid)
         return response
 
+    await request.app.state.recommendation_service.sync_event(event_id, title)
+
     response = JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={"id": event_id},
@@ -149,11 +152,11 @@ async def list_events(request: Request) -> Response:
             else 0
         )
         if price_from is not None and price_to is not None and price_to < price_from:
-            raise InvalidFieldError("price_to")
+            raise InvalidParameterError("price_to")
         if date_from is not None and date_to is not None and date_to < date_from:
-            raise InvalidFieldError("date_to")
-    except InvalidFieldError as exc:
-        response = invalid_field_response(exc.field_name)
+            raise InvalidParameterError("date_to")
+    except InvalidParameterError as exc:
+        response = invalid_parameter_response(exc.field_name)
         _set_request_session_cookie_if_present(request, response)
         return response
 
@@ -290,6 +293,13 @@ async def _handle_reaction(
         set_response_session_cookie(request, response, session.sid)
         return response
 
+    # Только лайк попадает в граф рекомендаций (дизлайки — по ТЗ — игнорируются).
+    if like:
+        await request.app.state.recommendation_service.record_like(
+            session.user_id,
+            event_id,
+        )
+
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     set_response_session_cookie(request, response, session.sid)
     return response
@@ -387,10 +397,10 @@ async def update_event(request: Request, event_id: str) -> Response:
 
 
 def _parse_event_category_parameter(value: str) -> str:
-    return _validate_event_category(
-        parse_non_blank_parameter(value, "category"),
-        "category",
-    )
+    parsed = parse_non_blank_parameter(value, "category")
+    if parsed not in EVENT_CATEGORIES:
+        raise InvalidParameterError("category")
+    return parsed
 
 
 def _parse_patch_category(payload: Mapping[str, object]) -> str | None:

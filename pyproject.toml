@@ -1,7 +1,7 @@
 [project]
 name = "ndbx-lab"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.4.0"
+description = "FastAPI service for NoSQL lab assignments with Redis, MongoDB, Cassandra, and Neo4j"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -11,6 +11,7 @@ dependencies = [
     "isort>=8.0.1",
     "motor>=3.7.1",
     "mypy>=1.19.1",
+    "neo4j>=5.24.0",
     "pydantic>=2.12.5",
     "pymongo>=4.15.0",
     "pytest>=9.0.3",
@@ -30,7 +31,13 @@ module = "cassandra.*"
 ignore_missing_imports = true
 follow_untyped_imports = true
 
+[[tool.mypy.overrides]]
+module = "neo4j.*"
+ignore_missing_imports = true
+follow_untyped_imports = true
+
 [dependency-groups]
 dev = [
+    "pre-commit>=4.0.0",
     "ruff>=0.15.1",
 ]

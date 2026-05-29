@@ -14,6 +14,10 @@ from app.mongodb.bootstrap import init_mongodb_module
 from app.reactions.cache import ReactionCache
 from app.reactions.service import ReactionService
 from app.reactions.store import ReactionStore
+from app.recommendations.bootstrap import close_neo4j_module, init_neo4j_module
+from app.recommendations.cache import RecommendationCache
+from app.recommendations.service import RecommendationService
+from app.recommendations.store import RecommendationStore
 from app.reviews.cache import ReviewCache
 from app.reviews.service import ReviewService
 from app.reviews.store import ReviewStore
@@ -37,6 +41,7 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
 
         mongo_module = None
         cassandra_module = None
+        neo4j_module = None
 
         try:
             session_module = init_session_module(
@@ -45,12 +50,24 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
             )
             mongo_module = await init_mongodb_module(settings)
             cassandra_module = await init_cassandra_module(settings)
+            neo4j_module = await init_neo4j_module(settings)
 
             user_store = UserStore(mongo_module.database)
             event_store = EventStore(mongo_module.database)
 
+            recommendation_store = RecommendationStore(neo4j_module.driver)
+            recommendation_cache = RecommendationCache(
+                redis=redis,
+                ttl_seconds=settings.app_recommendations_ttl,
+            )
+
             user_service = UserService(user_store)
             event_service = EventService(event_store)
+            recommendation_service = RecommendationService(
+                event_service=event_service,
+                recommendation_store=recommendation_store,
+                recommendation_cache=recommendation_cache,
+            )
             auth_service = AuthService(
                 user_service=user_service,
                 session_service=session_module.service,
@@ -82,12 +99,14 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
             app.state.redis = redis
             app.state.mongodb = mongo_module
             app.state.cassandra = cassandra_module
+            app.state.neo4j = neo4j_module
             app.state.session_module = session_module
             app.state.user_service = user_service
             app.state.event_service = event_service
             app.state.auth_service = auth_service
             app.state.reaction_service = reaction_service
             app.state.review_service = review_service
+            app.state.recommendation_service = recommendation_service
 
             yield
         finally:
@@ -95,6 +114,8 @@ def create_app(root_message: str = "Welcome") -> FastAPI:
                 mongo_module.client.close()
             if cassandra_module is not None:
                 close_cassandra_module(cassandra_module)
+            if neo4j_module is not None:
+                await close_neo4j_module(neo4j_module)
             await redis.aclose()
 
     app = FastAPI(lifespan=lifespan)

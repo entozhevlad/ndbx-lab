@@ -28,6 +28,10 @@ class Settings:
     cassandra_password: str
     cassandra_keyspace: str
     cassandra_consistency: str
+    neo4j_url: str
+    neo4j_username: str
+    neo4j_password: str
+    app_recommendations_ttl: int
 
 
 def load_settings() -> Settings:
@@ -60,6 +64,10 @@ def load_settings() -> Settings:
         cassandra_password=_require_env("CASSANDRA_PASSWORD"),
         cassandra_keyspace=_require_env("CASSANDRA_KEYSPACE"),
         cassandra_consistency=_require_env("CASSANDRA_CONSISTENCY"),
+        neo4j_url=_require_env("NEO4J_URL"),
+        neo4j_username=_require_env("NEO4J_USERNAME"),
+        neo4j_password=_require_env("NEO4J_PASSWORD"),
+        app_recommendations_ttl=int(_require_env("APP_RECOMMENDATIONS_TTL")),
     )
 
     _require_positive(settings.app_port, "APP_PORT")
@@ -74,6 +82,7 @@ def load_settings() -> Settings:
     )
     _require_positive(settings.app_like_ttl, "APP_LIKE_TTL")
     _require_positive(settings.app_event_reviews_ttl, "APP_EVENT_REVIEWS_TTL")
+    _require_positive(settings.app_recommendations_ttl, "APP_RECOMMENDATIONS_TTL")
     _require_positive(settings.redis_port, "REDIS_PORT")
     _require_positive(settings.mongodb_port, "MONGODB_PORT")
     _require_positive(settings.cassandra_port, "CASSANDRA_PORT")
@@ -86,6 +95,9 @@ def load_settings() -> Settings:
 
     if settings.cassandra_keyspace.strip() == "":
         raise ValueError("CASSANDRA_KEYSPACE не должен быть пустым")
+
+    if settings.neo4j_url.strip() == "":
+        raise ValueError("NEO4J_URL не должен быть пустым")
 
     return settings
 

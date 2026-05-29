@@ -68,6 +68,25 @@ class EventStore:
         )
         return result.matched_count > 0
 
+    async def list_events_by_ids(
+        self,
+        event_ids: list[str],
+    ) -> list[dict[str, object]]:
+        object_ids: list[ObjectId] = []
+        for value in event_ids:
+            parsed = _parse_object_id(value)
+            if parsed is not None:
+                object_ids.append(parsed)
+
+        if not object_ids:
+            return []
+
+        cursor = self._collection.find({"_id": {"$in": object_ids}})
+        events: list[dict[str, object]] = []
+        async for event in cursor:
+            events.append(event)
+        return events
+
     async def list_event_ids_by_title(self, title: str) -> list[str]:
         cursor = self._collection.find(
             {"title": title},

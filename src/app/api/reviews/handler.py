@@ -3,8 +3,9 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from app.api.common import (InvalidFieldError, get_existing_session,
-                            invalid_field_response, message_response,
+from app.api.common import (InvalidFieldError, InvalidParameterError,
+                            get_existing_session, invalid_field_response,
+                            invalid_parameter_response, message_response,
                             parse_json_body, parse_uint_parameter,
                             refresh_request_session_cookie,
                             set_response_session_cookie)
@@ -95,8 +96,8 @@ async def list_reviews(request: Request, event_id: str) -> Response:
             if "offset" in params
             else 0
         )
-    except InvalidFieldError as exc:
-        response = invalid_field_response(exc.field_name)
+    except InvalidParameterError as exc:
+        response = invalid_parameter_response(exc.field_name)
         _set_request_session_cookie_if_present(request, response)
         return response
 
