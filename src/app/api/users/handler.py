@@ -49,6 +49,8 @@ async def create_user(request: Request) -> Response:
             set_response_session_cookie(request, error_response, sid)
         return error_response
 
+    await request.app.state.recommendation_service.sync_user(user_id)
+
     session_result = (
         await request.app.state.session_module.service.create_authenticated_session(
             user_id

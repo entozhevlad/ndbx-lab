@@ -121,6 +121,16 @@ class EventService:
 
         return await self._event_store.list_event_ids_by_title(title)
 
+    async def list_events_by_ids(
+        self,
+        event_ids: list[str],
+    ) -> list[dict[str, object]]:
+        if not event_ids:
+            return []
+
+        events = await self._event_store.list_events_by_ids(event_ids)
+        return [self._serialize_event(event) for event in events]
+
     async def update_event(
         self,
         event_id: str,

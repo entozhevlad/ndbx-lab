@@ -84,6 +84,8 @@ async def create_event(request: Request) -> Response:
         set_response_session_cookie(request, response, session.sid)
         return response
 
+    await request.app.state.recommendation_service.sync_event(event_id, title)
+
     response = JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content={"id": event_id},
@@ -289,6 +291,13 @@ async def _handle_reaction(
         )
         set_response_session_cookie(request, response, session.sid)
         return response
+
+    # Только лайк попадает в граф рекомендаций (дизлайки — по ТЗ — игнорируются).
+    if like:
+        await request.app.state.recommendation_service.record_like(
+            session.user_id,
+            event_id,
+        )
 
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     set_response_session_cookie(request, response, session.sid)

@@ -2,17 +2,19 @@
 
 `ndbx-lab` — это FastAPI-приложение для выполнения лабораторных работ по курсу NoSQL.
 
-Проект запускается в Docker, использует Redis для сессий и MongoDB для данных пользователей и событий. В лабораторной работе №3 поверх анонимных Redis-сессий добавлены регистрация, логин и CRUD-часть для событий.
+Проект запускается в Docker, использует Redis для сессий и кэша, шардированный MongoDB для пользователей и событий, Cassandra для реакций и отзывов, Neo4j для графа рекомендаций.
 
 ## Что есть в проекте
 
 - FastAPI-приложение со `src`-структурой
 - запуск через Docker Compose
 - конфигурация через `.env.local`
-- Redis для пользовательских сессий
+- Redis для пользовательских сессий и Cache-Aside
 - MongoDB для коллекций `users` и `events`
 - Swagger UI для ручной проверки API
 - Postman-коллекция для тестирования запросов
+- Cassandra для таблиц `event_reactions` и `event_reviews`
+- Neo4j для графа `User`/`Event`/`LIKED` и рекомендаций
 
 ## Технологии
 
@@ -21,6 +23,8 @@
 - Redis
 - MongoDB
 - Docker Compose
+- Cassandra
+- Neo4j
 
 ## Запуск
 
@@ -72,6 +76,12 @@ make stop
 - `MONGODB_USER` — пользователь MongoDB
 - `MONGODB_PASSWORD` — пароль MongoDB
 - `MONGODB_DATABASE` — имя базы MongoDB
+- `CASSANDRA_HOSTS`, `CASSANDRA_PORT`, `CASSANDRA_KEYSPACE`, `CASSANDRA_CONSISTENCY` — подключение к Cassandra
+- `APP_LIKE_TTL` — TTL кэша счётчиков реакций (секунды)
+- `APP_EVENT_REVIEWS_TTL` — TTL кэша агрегатов отзывов (секунды)
+- `NEO4J_URL` — bolt-адрес Neo4j (`bolt://neo4j:7687`)
+- `NEO4J_USERNAME`, `NEO4J_PASSWORD` — креды Neo4j
+- `APP_RECOMMENDATIONS_TTL` — TTL кэша рекомендаций (секунды)
 
 Если `REDIS_PASSWORD` задан, он используется и приложением, и контейнером Redis. Пара `MONGODB_USER` / `MONGODB_PASSWORD` опциональна: если оставить их пустыми, MongoDB поднимается без авторизации.
 
@@ -109,7 +119,19 @@ Endpoint для создания и обновления анонимной по
 
 ### `GET /events`
 
-Просмотр событий с фильтрацией по подстроке `title` и пагинацией через `limit` / `offset`.
+Просмотр событий с фильтрацией по подстроке `title` и пагинацией через `limit` / `offset`. Параметр `?include=reactions,reviews` добавляет к каждому событию агрегаты лайков/отзывов.
+
+### `POST /events/{event_id}/like` / `POST /events/{event_id}/dislike`
+
+Реакции на мероприятие. Лайки попадают как в Cassandra (`event_reactions`), так и в граф Neo4j как связь `(User)-[:LIKED]->(Event)`. Дизлайки в граф рекомендаций не учитываются.
+
+### Отзывы (`/events/{event_id}/reviews`)
+
+`POST`/`GET`/`PATCH` для отзывов на мероприятие. Хранятся в Cassandra, агрегаты — в Redis.
+
+### `GET /recommendations`
+
+Рекомендованные мероприятия для авторизованного пользователя. Берёт пользователей, которые лайкали те же события, и предлагает их остальные лайки (исключая уже лайкнутые), сортирует по популярности (числу совпадений) и дедуплицирует по `title`, оставляя ближайшее по дате старта. Результат кэшируется в Redis (`user:{user_id}:recomms`) на `APP_RECOMMENDATIONS_TTL` секунд по схеме Cache-Aside.
 
 Сессии:
 
@@ -136,6 +158,10 @@ Endpoint для создания и обновления анонимной по
 - `src/app/users/` и `src/app/events/` разделяют бизнес-логику и доступ к MongoDB для пользователей и событий
 - `src/app/auth/service.py` связывает логин/логаут с пользователями и Redis-сессиями
 - `src/app/mongodb/bootstrap.py` инициализирует MongoDB и создаёт индексы
+- `src/app/cassandra/bootstrap.py` поднимает подключение к Cassandra (схема — в `scripts/cassandra/`)
+- `src/app/neo4j/bootstrap.py` поднимает драйвер Neo4j (схема — в `scripts/neo4j/`)
+- `src/app/reactions/`, `src/app/reviews/` — store/service/cache для реакций и отзывов
+- `src/app/recommendations/` — store (Neo4j), cache (Redis) и сервис рекомендаций
 - `src/app/user_session.py` содержит утилиты для cookie, sid и Redis key format
 
 Поток запроса выглядит так:
@@ -209,11 +235,12 @@ curl -i http://localhost:8080/health
 
 - `POST /session`
 - `GET /health`
-- `POST /users`
-- `POST /auth/login`
-- `POST /auth/logout`
-- `POST /events`
-- `GET /events`
+- `POST /users`, `GET /users`, `GET /users/{user_id}`, `GET /users/{user_id}/events`
+- `POST /auth/login`, `POST /auth/logout`
+- `POST /events`, `GET /events`, `GET /events/{event_id}`, `PATCH /events/{event_id}`
+- `POST /events/{event_id}/like`, `POST /events/{event_id}/dislike`
+- `POST /events/{event_id}/reviews`, `GET /events/{event_id}/reviews`, `PATCH /events/{event_id}/reviews/{review_id}`
+- `GET /recommendations`
 
 ## Структура проекта
 
