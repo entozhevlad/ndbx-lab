@@ -3,8 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.common import (InvalidFieldError, InvalidParameterError,
                             get_required_string_field, include_has,
-                            invalid_field_response,
-                            invalid_parameter_response,
+                            invalid_field_response, invalid_parameter_response,
                             message_response, parse_json_body,
                             parse_non_blank_parameter,
                             parse_object_id_parameter, parse_uint_parameter,

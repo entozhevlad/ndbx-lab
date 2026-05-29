@@ -30,6 +30,23 @@
 
 Перед запуском проверьте настройки в `.env.local`.
 
+Локальное развёртывание после клонирования или обновления репозитория:
+
+```bash
+git clone https://github.com/entozhevlad/ndbx-lab.git
+cd ndbx-lab
+uv sync --group dev
+make run
+```
+
+Для уже склонированного репозитория перед запуском достаточно выполнить `git pull`.
+
+`make run` поднимает приложение и все хранилища через Docker Compose. Если инфраструктура уже запущена отдельно, приложение можно стартовать локально:
+
+```bash
+PYTHONPATH=src uv run python -m app.main
+```
+
 Запуск в фоне:
 
 ```bash
@@ -261,11 +278,14 @@ curl -i http://localhost:8080/health
 
 ### Postman
 
-В проекте есть Postman-коллекция:
+В проекте есть Postman-коллекция и окружение для smoke-проверок:
 
-[api_tests_collection.json](src/tools/api_tests_collection.json)
+- [api_tests_collection.json](src/tools/api_tests_collection.json)
+- [api_smoke_environment.json](src/tools/api_smoke_environment.json)
 
-Ее можно использовать для проверки:
+Чтобы прогнать смоки в Postman, импортируйте оба файла, выберите окружение `ndbx-lab-smoke` и запустите коллекцию через Run collection. Коллекция сама сохраняет временные `eventId`, `userId` и `reviewId`, поэтому ее можно запускать повторно на уже заполненной базе.
+
+Коллекция проверяет:
 
 - `POST /session`
 - `GET /health`
@@ -275,6 +295,16 @@ curl -i http://localhost:8080/health
 - `POST /events/{event_id}/like`, `POST /events/{event_id}/dislike`
 - `POST /events/{event_id}/reviews`, `GET /events/{event_id}/reviews`, `PATCH /events/{event_id}/reviews/{review_id}`
 - `GET /recommendations`
+
+## Качество кода
+
+Для локальной проверки используется `make lint`. Команда объединяет:
+
+- `isort` — проверяет порядок и группировку импортов
+- `mypy` — проверяет типы в `src`
+- `ruff` — проверяет стиль и типовые ошибки Python-кода
+
+Для автоматической проверки перед коммитом настроен `pre-commit`; установить hook можно командой `uv run pre-commit install`.
 
 ## Структура проекта
 

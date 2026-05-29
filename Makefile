@@ -24,3 +24,22 @@ stop:
 .PHONY: clean
 clean:
 	docker compose --env-file .env.local down -v
+
+# Checks import ordering.
+.PHONY: isort
+isort:
+	uv run isort --check-only src
+
+# Runs static type checks.
+.PHONY: mypy
+mypy:
+	uv run mypy src
+
+# Runs Ruff checks.
+.PHONY: ruff
+ruff:
+	uv run ruff check src
+
+# Runs all lint checks.
+.PHONY: lint
+lint: isort mypy ruff
